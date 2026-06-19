@@ -1,0 +1,29 @@
+Drydock
+Copyright 2026 The Drydock Authors
+
+This product includes software developed by third parties. The principal
+dependencies and their licenses are listed below; the full text of each license
+is available from the respective project. Generate a complete dependency
+manifest with `go mod download -x` / `go list -m all` (Go) and the committed
+`frontend/package-lock.json` (frontend).
+
+Go dependencies
+---------------
+- github.com/wailsapp/wails/v2 — MIT
+- github.com/docker/docker (client SDK) — Apache-2.0
+- golang.org/x/crypto — BSD-3-Clause
+- modernc.org/sqlite — BSD-3-Clause
+- github.com/zalando/go-keyring — MIT
+- github.com/BurntSushi/toml — MIT
+- github.com/stretchr/testify — MIT
+- gopkg.in/natefinch/lumberjack.v2 — MIT
+
+Frontend dependencies
+---------------------
+- svelte — MIT
+- vite — MIT
+- typescript — Apache-2.0
+
+This NOTICE file is provided for attribution under the Apache License 2.0,
+Section 4(d). Dependencies not yet introduced (per the phased build plan in
+PROJECT-BOOK §7.10) are added here as they are adopted.
