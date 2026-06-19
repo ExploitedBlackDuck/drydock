@@ -19,3 +19,6 @@
 *.test
 *.out
 /coverage.txt
+
+# Wails frontend change-detection cache
+/frontend/package.json.md5
