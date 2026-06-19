@@ -1,0 +1,53 @@
+# golangci-lint configuration for Drydock (PROJECT-BOOK §2.6). The linter set is
+# curated and committed; CI fails on any finding. There is no "warning" tier.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    - depguard
+    - gocritic
+    - revive
+    - bodyclose
+    - contextcheck
+    - errorlint
+    - nilerr
+    - gosec
+    - sqlclosecheck
+    - rowserrcheck
+  settings:
+    depguard:
+      rules:
+        # The core tree imports zero UI code (PROJECT-BOOK §2.1). Only app/ and
+        # shell/ may import Wails.
+        core-no-wails:
+          files:
+            - "**/internal/core/**"
+          deny:
+            - pkg: github.com/wailsapp/wails
+              desc: "internal/core must not import the UI framework (PROJECT-BOOK §2.1)"
+    revive:
+      rules:
+        - name: exported
+          # Every exported symbol has a godoc comment (PROJECT-BOOK §2.7).
+          arguments:
+            - disableStutteringCheck
+  exclusions:
+    rules:
+      # Test files may use require/assert helpers that the linters misread and
+      # do not need the same exported-doc rigor.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+
+formatters:
+  enable:
+    - gofumpt

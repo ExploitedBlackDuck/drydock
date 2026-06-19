@@ -1,0 +1,93 @@
+# Taskfile for Drydock (go-task). The phase gates in PROJECT-BOOK §7.10 are
+# expressed as the `lint`, `test`, `test:integration`, and `build` tasks.
+version: "3"
+
+vars:
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+  BIN_DIR: build/bin
+  # The frontend's node_modules can contain vendored Go packages; keep the Go
+  # toolchain scoped to our own packages so they never leak into a gate.
+  GO_PKGS:
+    sh: go list ./... 2>/dev/null | grep -v /node_modules/ | tr '\n' ' '
+
+tasks:
+  default:
+    cmds:
+      - task: lint
+      - task: test
+      - task: build
+
+  tools:
+    desc: Install pinned developer tooling.
+    cmds:
+      - go install mvdan.cc/gofumpt@v0.7.0
+      - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+      - go install golang.org/x/vuln/cmd/govulncheck@v1.1.3
+      - go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.1
+
+  generate:
+    desc: Regenerate the typed Wails frontend bindings.
+    cmds:
+      - wails generate module
+
+  lint:
+    desc: "Gate: backend + frontend lint."
+    cmds:
+      - task: lint:go
+      - task: lint:frontend
+
+  lint:go:
+    desc: "gofumpt + golangci-lint + go vet + govulncheck (excludes node_modules)."
+    cmds:
+      # golangci-lint skips node_modules by default; the rest are scoped to the
+      # real module packages so a populated frontend/node_modules cannot leak in.
+      - gofumpt -l -d $(go list -f '{{`{{.Dir}}`}}' {{.GO_PKGS}}) | (! grep .)
+      - go vet {{.GO_PKGS}}
+      - golangci-lint run
+      - govulncheck {{.GO_PKGS}}
+
+  lint:frontend:
+    desc: "svelte-check (strict tsc) + ESLint + Prettier."
+    deps: [frontend:install]
+    cmds:
+      - npm --prefix frontend run check
+      - npm --prefix frontend run lint
+
+  test:
+    desc: "Gate: unit tests, green on a bare machine (no daemon, no keyring)."
+    cmds:
+      - go test {{.GO_PKGS}}
+
+  test:integration:
+    desc: "Tagged integration tests; skip cleanly when daemon/keyring absent."
+    cmds:
+      - go test -tags=integration {{.GO_PKGS}}
+
+  frontend:install:
+    internal: true
+    cmds:
+      - npm --prefix frontend ci
+    status:
+      - test -d frontend/node_modules
+
+  frontend:build:
+    internal: true
+    deps: [frontend:install]
+    cmds:
+      - npm --prefix frontend run build
+
+  build:
+    desc: "Gate: produce a runnable desktop binary for the host platform."
+    deps: [frontend:build]
+    cmds:
+      - wails build -ldflags "-X main.version={{.VERSION}}"
+
+  dev:
+    desc: Run the app with hot reload.
+    cmds:
+      - wails dev -ldflags "-X main.version={{.VERSION}}"
+
+  clean:
+    cmds:
+      - rm -rf {{.BIN_DIR}} frontend/dist/assets
