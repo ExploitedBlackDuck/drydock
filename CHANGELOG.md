@@ -18,6 +18,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Wails v2 binding layer (`app/`) and runtime isolation behind a `shell`
     interface (ADR-0001), wired through a thin composition root.
   - Svelte + TypeScript + Vite frontend talking to generated, typed bindings.
+  - Application shell (§7.11): always-visible host switcher with
+    transport/trust/observe state, eight-view navigation, add-host wizard, a dark
+    design-token system, accessible status cues, and per-view
+    loading/error/degraded/empty states backed by concern-split stores.
   - Tooling gates: `gofumpt`, curated `golangci-lint`, `go vet`, `govulncheck`,
     strict `tsc`/`svelte-check`, ESLint, and Prettier, orchestrated by a
     `Taskfile` and GitHub Actions CI.

@@ -1,12 +1,53 @@
-/* Minimal design tokens. The full visual direction follows the frontend-design
-   skill as views are built (PROJECT-BOOK §7.11); these are the seed tokens so
-   colour is never hard-coded in components. */
+/* Design tokens. Components reference these variables only — colour, spacing,
+   and type scale are never hard-coded inline (PROJECT-BOOK §7.11). The palette
+   targets WCAG-AA contrast on the dark surfaces; state is always paired with a
+   non-colour cue (icon/shape/label), never colour alone (§8.5). */
 :root {
-  --color-bg: #14171c;
+  /* Surfaces (raised from darkest base to lightest panel) */
+  --color-bg: #0e1116;
+  --color-surface: #161b22;
+  --color-surface-raised: #1c232c;
+  --color-surface-hover: #222b36;
+  --color-border: #2a323d;
+  --color-border-strong: #3a4452;
+
+  /* Text */
   --color-text: #e6e9ef;
   --color-text-muted: #9aa3b2;
-  --color-ok: #34d399;
-  --color-pending: #fbbf24;
+  --color-text-faint: #6b7482;
+
+  /* Accent + status (each used with an icon/label, never colour-only) */
+  --color-accent: #4c8dff;
+  --color-accent-soft: rgba(76, 141, 255, 0.16);
+  --color-ok: #3fb950;
+  --color-pending: #d29922;
+  --color-danger: #f85149;
+  --color-danger-soft: rgba(248, 81, 73, 0.14);
+  --color-warn: #db9a3a;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+    monospace;
+  --text-xs: 0.72rem;
+  --text-sm: 0.82rem;
+  --text-md: 0.92rem;
+  --text-lg: 1.1rem;
+  --text-xl: 1.5rem;
+
+  /* Spacing + shape */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --sidebar-width: 244px;
+  --topbar-height: 52px;
 
   color-scheme: dark;
 }
@@ -21,7 +62,25 @@ body {
   height: 100%;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
-    Arial, sans-serif;
+  font-family: var(--font-sans);
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#app {
+  height: 100vh;
+}
+
+/* Shared focus ring for keyboard operability (§8.5). */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
 }

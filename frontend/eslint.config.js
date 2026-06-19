@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import ts from 'typescript-eslint';
 import svelte from 'eslint-plugin-svelte';
 import svelteParser from 'svelte-eslint-parser';
+import globals from 'globals';
 
 export default ts.config(
   js.configs.recommended,
@@ -19,8 +20,7 @@ export default ts.config(
   {
     languageOptions: {
       globals: {
-        document: 'readonly',
-        window: 'readonly',
+        ...globals.browser,
       },
     },
   },
