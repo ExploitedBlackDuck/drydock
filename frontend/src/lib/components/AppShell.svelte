@@ -4,8 +4,10 @@
   import Sidebar from './Sidebar.svelte';
   import TopBar from './TopBar.svelte';
   import AddHostWizard from './AddHostWizard.svelte';
+  import RestartLoopBanner from './RestartLoopBanner.svelte';
   import PrimaryView from '../views/PrimaryView.svelte';
   import WelcomeScreen from '../views/WelcomeScreen.svelte';
+  import { HostStatus } from '../types/domain';
   import { activeHost } from '../stores/hosts';
 
   export let version = '';
@@ -18,6 +20,9 @@
 
   <div class="main">
     <TopBar {version} />
+    {#if $activeHost && $activeHost.status === HostStatus.Connected}
+      <RestartLoopBanner hostId={$activeHost.id} />
+    {/if}
     <main>
       {#if $activeHost}
         <PrimaryView host={$activeHost} />

@@ -250,6 +250,53 @@ export namespace domain {
 		    return a;
 		}
 	}
+	export class ResourceSample {
+	    HostRef: string;
+	    ContainerID: string;
+	    // Go type: time
+	    At: any;
+	    CPUPct: number;
+	    MemBytes: number;
+	    NetRx: number;
+	    NetTx: number;
+	    BlkRead: number;
+	    BlkWrite: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ResourceSample(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.HostRef = source["HostRef"];
+	        this.ContainerID = source["ContainerID"];
+	        this.At = this.convertValues(source["At"], null);
+	        this.CPUPct = source["CPUPct"];
+	        this.MemBytes = source["MemBytes"];
+	        this.NetRx = source["NetRx"];
+	        this.NetTx = source["NetTx"];
+	        this.BlkRead = source["BlkRead"];
+	        this.BlkWrite = source["BlkWrite"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Volume {
 	    Name: string;
 	    HostRef: string;

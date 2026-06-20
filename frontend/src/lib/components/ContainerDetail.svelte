@@ -5,6 +5,7 @@
   import { onMount, onDestroy, tick } from 'svelte';
   import Icon from './Icon.svelte';
   import StateBadge from './StateBadge.svelte';
+  import Sparkline from './Sparkline.svelte';
   import { formatBytes } from '../util/format';
   import {
     onLogLine,
@@ -15,25 +16,38 @@
     streamStats,
     type StatsSample,
   } from '../api/operations';
+  import { getResourceHistory } from '../api/dashboard';
   import type { Container } from '../api/engine';
 
   export let hostId: string;
   export let container: Container;
 
   const MAX_LINES = 2000;
+  const MAX_HISTORY = 120;
   let lines: string[] = [];
   let stats: StatsSample | null = null;
+  let cpuSeries: number[] = [];
   let logEl: HTMLDivElement;
   let unsubscribes: Array<() => void> = [];
 
   onMount(() => {
+    // Seed the chart with persisted rolling history, then extend it live.
+    getResourceHistory(hostId, container.ID, MAX_HISTORY)
+      .then((samples) => (cpuSeries = (samples ?? []).map((s) => s.CPUPct)))
+      .catch(() => {});
+
     unsubscribes.push(
       onLogLine(container.ID, (line) => {
         lines = [...lines.slice(-(MAX_LINES - 1)), line];
         autoscroll();
       }),
     );
-    unsubscribes.push(onStatsSample(container.ID, (s) => (stats = s)));
+    unsubscribes.push(
+      onStatsSample(container.ID, (s) => {
+        stats = s;
+        cpuSeries = [...cpuSeries.slice(-(MAX_HISTORY - 1)), s.cpuPct];
+      }),
+    );
     void streamLogs(hostId, container.ID);
     void streamStats(hostId, container.ID);
   });
@@ -60,6 +74,9 @@
     <div class="metrics">
       {#if stats}
         <span class="metric">CPU <b>{stats.cpuPct.toFixed(1)}%</b></span>
+        <span class="spark" title="CPU history"
+          ><Sparkline values={cpuSeries} /></span
+        >
         <span class="metric">MEM <b>{formatBytes(stats.memBytes)}</b></span>
         <span class="metric"
           >NET <b>↓{formatBytes(stats.netRx)} ↑{formatBytes(stats.netTx)}</b
@@ -138,6 +155,12 @@
   }
   .metric.muted {
     color: var(--color-text-faint);
+  }
+
+  .spark {
+    display: inline-flex;
+    align-items: center;
+    opacity: 0.9;
   }
 
   .logs {

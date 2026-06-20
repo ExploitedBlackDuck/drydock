@@ -11,6 +11,8 @@ export function DisconnectHost(arg1:string):Promise<void>;
 
 export function GetPruneImpact(arg1:string):Promise<domain.PruneImpact>;
 
+export function GetResourceHistory(arg1:string,arg2:string,arg3:number):Promise<Array<domain.ResourceSample>>;
+
 export function KillContainer(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
 export function ListContainers(arg1:string):Promise<Array<domain.Container>>;
@@ -50,5 +52,9 @@ export function StopContainerStats(arg1:string):Promise<void>;
 export function StreamContainerLogs(arg1:string,arg2:string):Promise<void>;
 
 export function StreamContainerStats(arg1:string,arg2:string):Promise<void>;
+
+export function SubscribeEvents(arg1:string):Promise<void>;
+
+export function UnsubscribeEvents(arg1:string):Promise<void>;
 
 export function Version():Promise<string>;

@@ -18,6 +18,10 @@ export function GetPruneImpact(arg1) {
   return window['go']['app']['App']['GetPruneImpact'](arg1);
 }
 
+export function GetResourceHistory(arg1, arg2, arg3) {
+  return window['go']['app']['App']['GetResourceHistory'](arg1, arg2, arg3);
+}
+
 export function KillContainer(arg1, arg2, arg3) {
   return window['go']['app']['App']['KillContainer'](arg1, arg2, arg3);
 }
@@ -96,6 +100,14 @@ export function StreamContainerLogs(arg1, arg2) {
 
 export function StreamContainerStats(arg1, arg2) {
   return window['go']['app']['App']['StreamContainerStats'](arg1, arg2);
+}
+
+export function SubscribeEvents(arg1) {
+  return window['go']['app']['App']['SubscribeEvents'](arg1);
+}
+
+export function UnsubscribeEvents(arg1) {
+  return window['go']['app']['App']['UnsubscribeEvents'](arg1);
 }
 
 export function Version() {
