@@ -116,9 +116,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux
-          path: |
-            dist/*.deb
-            dist/*.AppImage
+          # dist/* (not per-extension) so a best-effort AppImage's absence never
+          # fails the upload — the .deb always built.
+          path: dist/*
           if-no-files-found: error
 
   reproducibility:
@@ -157,10 +157,22 @@ jobs:
           find artifacts -type f \( -name '*.zip' -o -name '*.deb' -o -name '*.AppImage' \) -exec cp {} dist/ \;
           bash scripts/checksums.sh dist/*
           cp SHA256SUMS dist/SHA256SUMS
-      - name: Attach artifacts to the release
-        # The release for this tag is created from CHANGELOG.md; here we only
-        # upload the built artifacts and checksums to it, leaving the notes intact.
+      - name: Prepare release notes from the changelog
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          # Print the CHANGELOG section for this version: from its heading up to
+          # the next version heading or the link-reference block.
+          awk -v ver="$VER" '
+            $0 ~ "^## \\[" ver "\\]" {grab=1; next}
+            grab && (/^## \[/ || /^\[[^]]+\]: http/) {exit}
+            grab {print}
+          ' CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then echo "See CHANGELOG.md." > release_notes.md; fi
+      - name: Publish the release with artifacts
         uses: softprops/action-gh-release@v2
         with:
+          name: Drydock ${{ github.ref_name }}
+          body_path: release_notes.md
+          draft: false
           files: dist/*
           fail_on_unmatched_files: true

@@ -1,7 +1,8 @@
-# nfpm configuration for the Drydock .deb (ADR-0012, §9). Version, arch, and the
-# built binary are supplied via environment variables so CI drives it from the
-# release tag without editing this file. Build with:
-#   VERSION=1.2.3 ARCH=amd64 BIN=build/bin/drydock nfpm package -p deb -f build/linux/nfpm.yaml
+# nfpm configuration for the Drydock .deb (ADR-0012, §9). Version and arch are
+# supplied via environment variables so CI drives them from the release tag; the
+# binary source is the deterministic Wails output path (nfpm does not expand env
+# vars inside contents globs). Build with:
+#   VERSION=1.2.3 ARCH=amd64 nfpm package -p deb -f build/linux/nfpm.yaml
 name: drydock
 arch: ${ARCH}
 version: ${VERSION}
@@ -20,7 +21,7 @@ depends:
   - libgtk-3-0
   - libwebkit2gtk-4.1-0
 contents:
-  - src: ${BIN}
+  - src: build/bin/drydock
     dst: /usr/bin/drydock
     file_info:
       mode: 0755

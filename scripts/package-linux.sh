@@ -16,22 +16,34 @@ BIN="${BIN:-build/bin/drydock}"
 mkdir -p dist
 
 echo "==> .deb (nfpm)"
-VERSION="$VERSION" ARCH="$ARCH" BIN="$BIN" \
+# nfpm expands ${VERSION}/${ARCH} in its config; the binary path is hardcoded
+# there (nfpm does not expand env vars inside contents globs).
+VERSION="$VERSION" ARCH="$ARCH" \
   nfpm package -p deb -f build/linux/nfpm.yaml -t "dist/drydock_${VERSION}_${ARCH}.deb"
 
-echo "==> AppImage (linuxdeploy)"
-appdir="$(mktemp -d)/AppDir"
-trap 'rm -rf "$(dirname "$appdir")"' EXIT
-install -Dm755 "$BIN" "$appdir/usr/bin/drydock"
-install -Dm644 build/linux/drydock.desktop "$appdir/usr/share/applications/drydock.desktop"
-install -Dm644 build/appicon.png "$appdir/usr/share/icons/hicolor/512x512/apps/drydock.png"
+# build_appimage assembles an AppDir and runs linuxdeploy. It is best-effort: a
+# linuxdeploy/appimagetool hiccup must not sink a release whose .deb already
+# built, so the caller treats a non-zero return as a warning (see below).
+build_appimage() {
+  local appdir
+  appdir="$(mktemp -d)/AppDir"
+  install -Dm755 "$BIN" "$appdir/usr/bin/drydock"
+  install -Dm644 build/linux/drydock.desktop "$appdir/usr/share/applications/drydock.desktop"
+  install -Dm644 build/appicon.png "$appdir/usr/share/icons/hicolor/512x512/apps/drydock.png"
+  ARCH="$(uname -m)" OUTPUT="dist/Drydock-${VERSION}-$(uname -m).AppImage" \
+    linuxdeploy --appdir "$appdir" \
+      --desktop-file "$appdir/usr/share/applications/drydock.desktop" \
+      --icon-file "$appdir/usr/share/icons/hicolor/512x512/apps/drydock.png" \
+      --output appimage
+}
 
-# linuxdeploy resolves the desktop/icon, generates AppRun, and bundles libraries.
-ARCH="$(uname -m)" OUTPUT="dist/Drydock-${VERSION}-$(uname -m).AppImage" \
-  linuxdeploy --appdir "$appdir" \
-    --desktop-file "$appdir/usr/share/applications/drydock.desktop" \
-    --icon-file "$appdir/usr/share/icons/hicolor/512x512/apps/drydock.png" \
-    --output appimage
+echo "==> AppImage (linuxdeploy)"
+# `if` context disables errexit inside the function, so a failure is captured.
+if build_appimage; then
+  echo "AppImage built."
+else
+  echo "::warning::AppImage build failed; publishing the .deb only." >&2
+fi
 
 echo "==> Linux artifacts:"
-ls -1 dist/*.deb dist/*.AppImage
+ls -1 dist/
