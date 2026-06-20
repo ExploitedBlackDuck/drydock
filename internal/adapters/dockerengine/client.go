@@ -8,7 +8,9 @@ package dockerengine
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -25,11 +27,15 @@ import (
 type Client struct {
 	cli     *client.Client
 	hostRef string
+	// closers are torn down after the SDK client on Close — e.g. the SSH tunnel
+	// the client dials through (ADR-0005), so no tunnel is leaked.
+	closers []io.Closer
 }
 
 type options struct {
 	host       string
 	clientOpts []client.Opt
+	closers    []io.Closer
 }
 
 // Option configures the engine client.
@@ -45,6 +51,12 @@ func WithHost(host string) Option {
 // adapters (P3) to supply an SSH-dialed connection.
 func WithClientOptions(opts ...client.Opt) Option {
 	return func(o *options) { o.clientOpts = append(o.clientOpts, opts...) }
+}
+
+// WithCloser registers a resource (e.g. an SSH tunnel) to be closed when the
+// engine is closed, so the transport is torn down with the client.
+func WithCloser(c io.Closer) Option {
+	return func(o *options) { o.closers = append(o.closers, c) }
 }
 
 // Open constructs an engine client for hostRef. API-version negotiation happens
@@ -67,7 +79,7 @@ func Open(hostRef string, opts ...Option) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating docker client for host %q: %w", hostRef, err)
 	}
-	return &Client{cli: cli, hostRef: hostRef}, nil
+	return &Client{cli: cli, hostRef: hostRef, closers: cfg.closers}, nil
 }
 
 // Info returns the engine and negotiated API version, flagging reduced
@@ -138,12 +150,19 @@ func (c *Client) ListNetworks(ctx context.Context) ([]domain.Network, error) {
 	return out, nil
 }
 
-// Close releases the underlying connection and idle transport connections.
+// Close releases the SDK client and then any registered transport resources
+// (e.g. the SSH tunnel), so nothing is left open after disconnect.
 func (c *Client) Close() error {
+	var errs []error
 	if err := c.cli.Close(); err != nil {
-		return fmt.Errorf("closing docker client for host %q: %w", c.hostRef, err)
+		errs = append(errs, fmt.Errorf("closing docker client for host %q: %w", c.hostRef, err))
 	}
-	return nil
+	for _, closer := range c.closers {
+		if err := closer.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("closing transport for host %q: %w", c.hostRef, err))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // Compile-time assertion that Client satisfies the port.
