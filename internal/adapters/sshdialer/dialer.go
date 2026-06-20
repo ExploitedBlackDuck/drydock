@@ -203,7 +203,9 @@ func authMethods(cfg Config) ([]ssh.AuthMethod, error) {
 
 	if cfg.UseAgent {
 		if sock := os.Getenv("SSH_AUTH_SOCK"); sock != "" {
-			if conn, err := net.Dial("unix", sock); err == nil {
+			// sock is the operator's own agent socket from the environment, not
+			// remote-controlled input.
+			if conn, err := net.Dial("unix", sock); err == nil { //nolint:gosec // G704: trusted local agent socket
 				methods = append(methods, ssh.PublicKeysCallback(agent.NewClient(conn).Signers))
 			}
 		}

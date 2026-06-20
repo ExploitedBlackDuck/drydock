@@ -40,6 +40,10 @@ linters:
           arguments:
             - disableStutteringCheck
   exclusions:
+    # The frontend's node_modules can vendor unrelated Go packages; never lint
+    # them (they are excluded from the Go toolchain elsewhere too).
+    paths:
+      - frontend/node_modules
     rules:
       # Test files may use require/assert helpers that the linters misread and
       # do not need the same exported-doc rigor.

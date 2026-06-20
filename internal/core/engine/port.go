@@ -7,9 +7,42 @@ package engine
 
 import (
 	"context"
+	"io"
 
 	"github.com/drydock/drydock/internal/core/domain"
 )
+
+// LogOptions configures a container log stream.
+type LogOptions struct {
+	// Follow keeps the stream open, emitting new lines as they arrive.
+	Follow bool
+	// Tail is the number of trailing lines to start from (0 = all).
+	Tail int
+	// Timestamps prefixes each line with its RFC3339 timestamp.
+	Timestamps bool
+}
+
+// RemoveOptions configures container removal.
+type RemoveOptions struct {
+	// Force removes a running container (destructive: in-flight work is lost).
+	Force bool
+	// Volumes also removes anonymous volumes attached to the container.
+	Volumes bool
+}
+
+// ExecSpec describes a command to run inside a container. The command is always
+// argv — never a shell string (ADR-0004).
+type ExecSpec struct {
+	Cmd        []string
+	User       string
+	WorkingDir string
+	Tty        bool
+}
+
+// ExecStream is the bidirectional I/O of a running exec session.
+type ExecStream interface {
+	io.ReadWriteCloser
+}
 
 // MinAPIVersion is the lowest Docker Engine API version Drydock fully supports.
 // A host below it connects in a clearly-labelled reduced-capability mode rather
@@ -35,6 +68,27 @@ type Engine interface {
 	ListVolumes(ctx context.Context) ([]domain.Volume, error)
 	// ListNetworks lists networks known to the engine.
 	ListNetworks(ctx context.Context) ([]domain.Network, error)
+
+	// StartContainer starts a stopped container.
+	StartContainer(ctx context.Context, id string) error
+	// StopContainer gracefully stops a running container.
+	StopContainer(ctx context.Context, id string) error
+	// RestartContainer restarts a container.
+	RestartContainer(ctx context.Context, id string) error
+	// KillContainer sends SIGKILL to a container (in-flight work is lost).
+	KillContainer(ctx context.Context, id string) error
+	// RemoveContainer removes a container per opts.
+	RemoveContainer(ctx context.Context, id string, opts RemoveOptions) error
+
+	// ContainerLogs returns a demultiplexed, plain-text log stream. Closing the
+	// reader (or cancelling ctx) stops the stream.
+	ContainerLogs(ctx context.Context, id string, opts LogOptions) (io.ReadCloser, error)
+	// StreamStats samples a container's live stats into sink until ctx is
+	// cancelled, then returns. No goroutine outlives the call.
+	StreamStats(ctx context.Context, id string, sink func(domain.ResourceSample)) error
+	// Exec starts a command (argv) inside a container and returns its stream.
+	Exec(ctx context.Context, id string, spec ExecSpec) (ExecStream, error)
+
 	// Close releases the engine connection and any associated resources.
 	Close() error
 }

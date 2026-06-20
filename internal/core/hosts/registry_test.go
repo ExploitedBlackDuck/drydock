@@ -3,6 +3,7 @@ package hosts_test
 import (
 	"context"
 	"errors"
+	"io"
 	"sync"
 	"testing"
 
@@ -81,7 +82,26 @@ func (e *fakeEngine) ListContainers(context.Context) ([]domain.Container, error)
 func (e *fakeEngine) ListImages(context.Context) ([]domain.Image, error)         { return nil, nil }
 func (e *fakeEngine) ListVolumes(context.Context) ([]domain.Volume, error)       { return nil, nil }
 func (e *fakeEngine) ListNetworks(context.Context) ([]domain.Network, error)     { return nil, nil }
-func (e *fakeEngine) Close() error                                               { e.closed = true; return nil }
+func (e *fakeEngine) StartContainer(context.Context, string) error               { return nil }
+func (e *fakeEngine) StopContainer(context.Context, string) error                { return nil }
+func (e *fakeEngine) RestartContainer(context.Context, string) error             { return nil }
+func (e *fakeEngine) KillContainer(context.Context, string) error                { return nil }
+func (e *fakeEngine) RemoveContainer(context.Context, string, engine.RemoveOptions) error {
+	return nil
+}
+
+func (e *fakeEngine) ContainerLogs(context.Context, string, engine.LogOptions) (io.ReadCloser, error) {
+	return nil, nil
+}
+
+func (e *fakeEngine) StreamStats(context.Context, string, func(domain.ResourceSample)) error {
+	return nil
+}
+
+func (e *fakeEngine) Exec(context.Context, string, engine.ExecSpec) (engine.ExecStream, error) {
+	return nil, nil
+}
+func (e *fakeEngine) Close() error { e.closed = true; return nil }
 
 type fakeConnector struct {
 	engines []*fakeEngine
