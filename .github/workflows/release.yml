@@ -155,9 +155,10 @@ jobs:
           find artifacts -type f \( -name '*.zip' -o -name '*.deb' -o -name '*.AppImage' \) -exec cp {} dist/ \;
           bash scripts/checksums.sh dist/*
           cp SHA256SUMS dist/SHA256SUMS
-      - name: Create release
+      - name: Attach artifacts to the release
+        # The release for this tag is created from CHANGELOG.md; here we only
+        # upload the built artifacts and checksums to it, leaving the notes intact.
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          generate_release_notes: true
           fail_on_unmatched_files: true

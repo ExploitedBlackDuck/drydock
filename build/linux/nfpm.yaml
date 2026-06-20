@@ -14,7 +14,7 @@ description: |
   Manage local and remote (SSH) Docker engines: containers, Compose stacks,
   images, volumes, networks, disk usage, and a tamper-evident audit log.
 vendor: The Drydock Authors
-homepage: https://github.com/drydock/drydock
+homepage: https://github.com/ExploitedBlackDuck/drydock
 license: Apache-2.0
 depends:
   - libgtk-3-0
