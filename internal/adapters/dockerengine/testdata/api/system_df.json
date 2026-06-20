@@ -1,0 +1,38 @@
+{
+  "LayersSize": 500000000,
+  "Images": [
+    {
+      "Id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "RepoTags": ["registry.example.com/team/web:1.4.2"],
+      "Size": 182000000,
+      "SharedSize": 50000000,
+      "Containers": 1
+    },
+    {
+      "Id": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "RepoTags": ["<none>:<none>"],
+      "Size": 54000000,
+      "SharedSize": 0,
+      "Containers": 0
+    },
+    {
+      "Id": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "RepoTags": ["registry.example.com/team/old:0.9"],
+      "Size": 120000000,
+      "SharedSize": 20000000,
+      "Containers": 0
+    }
+  ],
+  "Containers": [
+    { "Id": "c1c1c1", "Names": ["/web"], "State": "running", "SizeRw": 1048576 },
+    { "Id": "c2c2c2", "Names": ["/old"], "State": "exited", "SizeRw": 2097152 }
+  ],
+  "Volumes": [
+    { "Name": "shop_db-data", "UsageData": { "RefCount": 1, "Size": 104857600 } },
+    { "Name": "scratch", "UsageData": { "RefCount": 0, "Size": 2048 } }
+  ],
+  "BuildCache": [
+    { "ID": "bc0000000000", "Size": 300000000, "InUse": false },
+    { "ID": "bc1111111111", "Size": 100000000, "InUse": true }
+  ]
+}
