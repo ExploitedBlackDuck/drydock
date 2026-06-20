@@ -40,7 +40,8 @@ func (c *Connector) Connect(ctx context.Context, h domain.Host) (engine.Engine, 
 		if err != nil {
 			return nil, fmt.Errorf("establishing SSH tunnel to %q: %w", h.Name, err)
 		}
-		eng, err := dockerengine.Open(h.ID,
+		eng, err := dockerengine.Open(
+			h.ID,
 			dockerengine.WithClientOptions(
 				client.WithHost("unix://"+remoteSocket),
 				client.WithDialContext(dialer.DialContext),
