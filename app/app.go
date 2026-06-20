@@ -7,8 +7,10 @@ package app
 import (
 	"context"
 	"log/slog"
+	"sync"
 
 	"github.com/drydock/drydock/internal/core/hosts"
+	"github.com/drydock/drydock/internal/core/operations"
 	"github.com/drydock/drydock/shell"
 )
 
@@ -19,17 +21,26 @@ type App struct {
 	runtime  shell.Runtime
 	version  string
 	registry *hosts.Registry
+	ops      *operations.Service
+	samples  SampleSink
 	ctx      context.Context
+
+	// streams tracks live log/stats streams so they can be cancelled.
+	streamMu sync.Mutex
+	streams  map[string]context.CancelFunc
 }
 
 // New constructs the binding layer with its injected dependencies. Nothing is
 // constructed globally (PROJECT-BOOK §2.3); main is the composition root.
-func New(log *slog.Logger, runtime shell.Runtime, version string, registry *hosts.Registry) *App {
+func New(log *slog.Logger, runtime shell.Runtime, version string, registry *hosts.Registry, ops *operations.Service, samples SampleSink) *App {
 	return &App{
 		log:      log,
 		runtime:  runtime,
 		version:  version,
 		registry: registry,
+		ops:      ops,
+		samples:  samples,
+		streams:  map[string]context.CancelFunc{},
 	}
 }
 

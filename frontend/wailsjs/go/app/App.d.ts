@@ -9,6 +9,8 @@ export function ConnectHost(arg1:string):Promise<app.HostDTO>;
 
 export function DisconnectHost(arg1:string):Promise<void>;
 
+export function KillContainer(arg1:string,arg2:string,arg3:boolean):Promise<void>;
+
 export function ListContainers(arg1:string):Promise<Array<domain.Container>>;
 
 export function ListHosts():Promise<Array<app.HostDTO>>;
@@ -19,8 +21,24 @@ export function ListNetworks(arg1:string):Promise<Array<domain.Network>>;
 
 export function ListVolumes(arg1:string):Promise<Array<domain.Volume>>;
 
+export function RemoveContainer(arg1:string,arg2:string,arg3:boolean,arg4:boolean,arg5:boolean):Promise<void>;
+
 export function RemoveHost(arg1:string):Promise<void>;
 
+export function RestartContainer(arg1:string,arg2:string):Promise<void>;
+
 export function SetObserveMode(arg1:string,arg2:boolean):Promise<void>;
+
+export function StartContainer(arg1:string,arg2:string):Promise<void>;
+
+export function StopContainer(arg1:string,arg2:string):Promise<void>;
+
+export function StopContainerLogs(arg1:string):Promise<void>;
+
+export function StopContainerStats(arg1:string):Promise<void>;
+
+export function StreamContainerLogs(arg1:string,arg2:string):Promise<void>;
+
+export function StreamContainerStats(arg1:string,arg2:string):Promise<void>;
 
 export function Version():Promise<string>;

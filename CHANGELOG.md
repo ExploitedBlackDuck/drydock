@@ -57,5 +57,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - GUI: backend-driven host switcher, a working add-host wizard (persists +
     connects, warns on insecure transport), multi-host switching, and an
     explicit, audited observe-mode toggle.
+- **P4 — container control, logs, stats, exec.**
+  - Engine gains start/stop/restart/kill/remove, log streaming, stats sampling,
+    and argv exec (never a shell). The `operations` service runs every mutation
+    through the observe-mode guard, records it, and audits it; destructive ops
+    require acknowledgement.
+  - Streamed stats are sampled into the rolling resource history.
+  - GUI: contextual container actions (observe-aware, confirmed destruction) and
+    a detail drawer with streamed logs and live CPU/memory/network stats.
+  - Cancellation propagates to streams with no leaked goroutine (tagged
+    integration test against a real container).
 
 [Unreleased]: https://github.com/drydock/drydock/commits/main

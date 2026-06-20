@@ -19,6 +19,7 @@ import (
 	"github.com/drydock/drydock/internal/core/domain"
 	"github.com/drydock/drydock/internal/core/engine"
 	"github.com/drydock/drydock/internal/core/hosts"
+	"github.com/drydock/drydock/internal/core/operations"
 	"github.com/drydock/drydock/internal/platform/config"
 	"github.com/drydock/drydock/internal/platform/logging"
 )
@@ -55,7 +56,8 @@ func run() error {
 	}
 	defer closeLog()
 
-	log.Info("drydock initialized",
+	log.Info(
+		"drydock initialized",
 		slog.String("version", version),
 		slog.String("config_dir", paths.ConfigDir),
 		slog.String("data_dir", paths.DataDir),
@@ -101,12 +103,14 @@ func run() error {
 	}
 	defer func() { _ = registry.Close(context.Background()) }()
 
+	ops := operations.New(registry, store, auditLog, nil)
+
 	assets, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {
 		return fmt.Errorf("loading embedded frontend: %w", err)
 	}
 
-	return app.Run(assets, log, registry, version)
+	return app.Run(assets, log, registry, ops, store, version)
 }
 
 // buildLogger constructs the operational logger. In dev (text format) it writes

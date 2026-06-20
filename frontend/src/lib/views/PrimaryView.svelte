@@ -49,7 +49,7 @@
     {/if}
 
     {#if connected && $activeView === ViewId.Containers}
-      <ContainersView hostId={host.id} />
+      <ContainersView hostId={host.id} observeMode={host.observeMode} />
     {:else if connected && $activeView === ViewId.Images}
       <ImagesView hostId={host.id} />
     {:else if connected && $activeView === ViewId.Volumes}

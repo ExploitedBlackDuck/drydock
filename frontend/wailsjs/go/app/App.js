@@ -14,6 +14,10 @@ export function DisconnectHost(arg1) {
   return window['go']['app']['App']['DisconnectHost'](arg1);
 }
 
+export function KillContainer(arg1, arg2, arg3) {
+  return window['go']['app']['App']['KillContainer'](arg1, arg2, arg3);
+}
+
 export function ListContainers(arg1) {
   return window['go']['app']['App']['ListContainers'](arg1);
 }
@@ -34,12 +38,44 @@ export function ListVolumes(arg1) {
   return window['go']['app']['App']['ListVolumes'](arg1);
 }
 
+export function RemoveContainer(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['app']['App']['RemoveContainer'](arg1, arg2, arg3, arg4, arg5);
+}
+
 export function RemoveHost(arg1) {
   return window['go']['app']['App']['RemoveHost'](arg1);
 }
 
+export function RestartContainer(arg1, arg2) {
+  return window['go']['app']['App']['RestartContainer'](arg1, arg2);
+}
+
 export function SetObserveMode(arg1, arg2) {
   return window['go']['app']['App']['SetObserveMode'](arg1, arg2);
+}
+
+export function StartContainer(arg1, arg2) {
+  return window['go']['app']['App']['StartContainer'](arg1, arg2);
+}
+
+export function StopContainer(arg1, arg2) {
+  return window['go']['app']['App']['StopContainer'](arg1, arg2);
+}
+
+export function StopContainerLogs(arg1) {
+  return window['go']['app']['App']['StopContainerLogs'](arg1);
+}
+
+export function StopContainerStats(arg1) {
+  return window['go']['app']['App']['StopContainerStats'](arg1);
+}
+
+export function StreamContainerLogs(arg1, arg2) {
+  return window['go']['app']['App']['StreamContainerLogs'](arg1, arg2);
+}
+
+export function StreamContainerStats(arg1, arg2) {
+  return window['go']['app']['App']['StreamContainerStats'](arg1, arg2);
 }
 
 export function Version() {
