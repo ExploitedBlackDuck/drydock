@@ -67,5 +67,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     a detail drawer with streamed logs and live CPU/memory/network stats.
   - Cancellation propagates to streams with no leaked goroutine (tagged
     integration test against a real container).
+- **P5 — prune impact preview & destructive-op safety.**
+  - `prune.Compute` derives a per-category reclaimable preview (stopped
+    containers, dangling vs unused images, build cache first-class) from
+    `system df`; volumes are listed individually, never as a bulk category.
+  - `options.Assess`: declarative, table-tested impact rules (observe-mode →
+    block, `rm -f` running → require_ack, `down -v` → require_ack, exec root →
+    warn).
+  - Prune flows require acknowledgement and write the confirmed impact + bytes
+    reclaimed to the operation record, `prune_impacts`, and the audit log.
+  - GUI: a Disk dashboard with per-category reclaimable space (build cache
+    first-class), confirm-before-prune, and per-volume removal (never bulk),
+    disabled on observe-only hosts.
 
 [Unreleased]: https://github.com/drydock/drydock/commits/main
