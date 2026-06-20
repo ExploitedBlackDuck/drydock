@@ -13,6 +13,8 @@
   import VolumesView from './VolumesView.svelte';
   import NetworksView from './NetworksView.svelte';
   import DiskView from './DiskView.svelte';
+  import HistoryView from './HistoryView.svelte';
+  import AuditView from './AuditView.svelte';
   import { VIEW_CONTENT } from './content';
   import { ViewId, VIEWS } from '../types/view';
   import { activeView } from '../stores/navigation';
@@ -62,6 +64,10 @@
       <NetworksView hostId={host.id} />
     {:else if connected && $activeView === ViewId.Disk}
       <DiskView hostId={host.id} observeMode={host.observeMode} />
+    {:else if connected && $activeView === ViewId.History}
+      <HistoryView hostId={host.id} />
+    {:else if connected && $activeView === ViewId.Audit}
+      <AuditView />
     {:else}
       <StateMessage
         icon={content.icon}

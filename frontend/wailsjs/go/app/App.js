@@ -6,6 +6,10 @@ export function AddHost(arg1) {
   return window['go']['app']['App']['AddHost'](arg1);
 }
 
+export function AuditTrail() {
+  return window['go']['app']['App']['AuditTrail']();
+}
+
 export function ComposeDown(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['ComposeDown'](arg1, arg2, arg3, arg4);
 }
@@ -20,6 +24,10 @@ export function ConnectHost(arg1) {
 
 export function DisconnectHost(arg1) {
   return window['go']['app']['App']['DisconnectHost'](arg1);
+}
+
+export function ExportJournal() {
+  return window['go']['app']['App']['ExportJournal']();
 }
 
 export function GetPruneImpact(arg1) {
@@ -56,6 +64,10 @@ export function ListStacks(arg1) {
 
 export function ListVolumes(arg1) {
   return window['go']['app']['App']['ListVolumes'](arg1);
+}
+
+export function OperationHistory(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['OperationHistory'](arg1, arg2, arg3, arg4);
 }
 
 export function PruneBuildCache(arg1, arg2) {
