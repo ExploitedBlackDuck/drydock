@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/drydock/drydock/app"
 	"github.com/drydock/drydock/frontend"
@@ -18,6 +19,7 @@ import (
 	"github.com/drydock/drydock/internal/core/audit"
 	"github.com/drydock/drydock/internal/core/domain"
 	"github.com/drydock/drydock/internal/core/engine"
+	"github.com/drydock/drydock/internal/core/history"
 	"github.com/drydock/drydock/internal/core/hosts"
 	"github.com/drydock/drydock/internal/core/operations"
 	"github.com/drydock/drydock/internal/platform/config"
@@ -104,6 +106,13 @@ func run() error {
 	defer func() { _ = registry.Close(context.Background()) }()
 
 	ops := operations.New(registry, store, auditLog, nil)
+
+	// Roll off resource history beyond the configured retention window. The
+	// goroutine is owned by retentionCtx and stops when run() returns.
+	retentionCtx, stopRetention := context.WithCancel(ctx)
+	defer stopRetention()
+	go history.NewRetention(store, cfg.History.ResourceRetention.Duration).
+		Run(retentionCtx, time.Hour, nil)
 
 	assets, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {

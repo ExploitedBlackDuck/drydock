@@ -12,10 +12,12 @@ import (
 // exhaust memory.
 const maxLogLine = 1024 * 1024
 
-// SampleSink persists rolling resource-history samples (PROJECT-BOOK §7.6). It
-// is consumer-defined here and satisfied by the SQLite store.
-type SampleSink interface {
+// SampleStore persists and reads rolling resource-history samples
+// (PROJECT-BOOK §7.6). It is consumer-defined here and satisfied by the SQLite
+// store.
+type SampleStore interface {
 	SaveResourceSample(ctx context.Context, s domain.ResourceSample) error
+	RecentResourceSamples(ctx context.Context, hostID, containerID string, limit int) ([]domain.ResourceSample, error)
 }
 
 // StatsDTO is the typed shape pushed to the frontend on each stats sample.

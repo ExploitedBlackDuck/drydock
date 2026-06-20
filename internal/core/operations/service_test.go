@@ -66,6 +66,10 @@ func (e *fakeEngine) RemoveVolume(context.Context, string, bool) error {
 	e.removed = true
 	return nil
 }
+
+func (e *fakeEngine) StreamEvents(context.Context, func(domain.EngineEvent)) error {
+	return nil
+}
 func (e *fakeEngine) Close() error { return nil }
 
 // fakeMutator emulates the registry guard: when observe is set, it rejects with

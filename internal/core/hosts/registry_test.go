@@ -109,7 +109,10 @@ func (e *fakeEngine) PruneContainers(context.Context) (int64, error)   { return 
 func (e *fakeEngine) PruneImages(context.Context, bool) (int64, error) { return 0, nil }
 func (e *fakeEngine) PruneBuildCache(context.Context) (int64, error)   { return 0, nil }
 func (e *fakeEngine) RemoveVolume(context.Context, string, bool) error { return nil }
-func (e *fakeEngine) Close() error                                     { e.closed = true; return nil }
+func (e *fakeEngine) StreamEvents(context.Context, func(domain.EngineEvent)) error {
+	return nil
+}
+func (e *fakeEngine) Close() error { e.closed = true; return nil }
 
 type fakeConnector struct {
 	engines []*fakeEngine

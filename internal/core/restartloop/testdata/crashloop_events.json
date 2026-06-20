@@ -1,0 +1,10 @@
+[
+  { "Type": "container", "Action": "start", "ContainerID": "c-web", "ContainerName": "web", "At": "2026-06-20T12:00:00Z" },
+  { "Type": "container", "Action": "die", "ContainerID": "c-web", "ContainerName": "web", "At": "2026-06-20T12:00:05Z" },
+  { "Type": "container", "Action": "start", "ContainerID": "c-web", "ContainerName": "web", "At": "2026-06-20T12:00:06Z" },
+  { "Type": "container", "Action": "die", "ContainerID": "c-web", "ContainerName": "web", "At": "2026-06-20T12:00:18Z" },
+  { "Type": "container", "Action": "start", "ContainerID": "c-web", "ContainerName": "web", "At": "2026-06-20T12:00:19Z" },
+  { "Type": "container", "Action": "die", "ContainerID": "c-web", "ContainerName": "web", "At": "2026-06-20T12:00:31Z" },
+  { "Type": "container", "Action": "die", "ContainerID": "c-db", "ContainerName": "db", "At": "2026-06-20T12:00:40Z" },
+  { "Type": "container", "Action": "stop", "ContainerID": "c-worker", "ContainerName": "worker", "At": "2026-06-20T12:00:41Z" }
+]

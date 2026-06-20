@@ -101,6 +101,10 @@ type Engine interface {
 	// volume-prune: volumes are only ever removed one at a time (ADR-0011, §7.4).
 	RemoveVolume(ctx context.Context, name string, force bool) error
 
+	// StreamEvents delivers engine events to sink until ctx is cancelled. It
+	// drives live UI updates and restart-loop detection (§7.6).
+	StreamEvents(ctx context.Context, sink func(domain.EngineEvent)) error
+
 	// Close releases the engine connection and any associated resources.
 	Close() error
 }

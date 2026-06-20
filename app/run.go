@@ -27,7 +27,7 @@ const (
 // until the window closes. assets is the embedded, built frontend; registry is
 // the multi-host registry, ops performs guarded mutations, and samples persists
 // resource history.
-func Run(assets fs.FS, log *slog.Logger, registry *hosts.Registry, ops *operations.Service, samples SampleSink, version string) error {
+func Run(assets fs.FS, log *slog.Logger, registry *hosts.Registry, ops *operations.Service, samples SampleStore, version string) error {
 	application := New(log, shell.WailsRuntime{}, version, registry, ops, samples)
 
 	err := wails.Run(&options.App{

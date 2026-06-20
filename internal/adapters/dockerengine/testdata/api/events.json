@@ -1,0 +1,16 @@
+[
+  {
+    "Type": "container",
+    "Action": "die",
+    "Actor": { "ID": "3f1a9c2b7e4d", "Attributes": { "name": "web", "exitCode": "1" } },
+    "time": 1718800000,
+    "timeNano": 1718800000000000000
+  },
+  {
+    "Type": "container",
+    "Action": "health_status: unhealthy",
+    "Actor": { "ID": "3f1a9c2b7e4d", "Attributes": { "name": "web" } },
+    "time": 1718800001,
+    "timeNano": 1718800001000000000
+  }
+]
