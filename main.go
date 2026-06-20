@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/drydock/drydock/app"
 	"github.com/drydock/drydock/frontend"
+	"github.com/drydock/drydock/internal/adapters/sqlitestore"
+	"github.com/drydock/drydock/internal/core/audit"
 	"github.com/drydock/drydock/internal/platform/config"
 	"github.com/drydock/drydock/internal/platform/logging"
 )
@@ -53,6 +56,27 @@ func run() error {
 		slog.String("config_dir", paths.ConfigDir),
 		slog.String("data_dir", paths.DataDir),
 	)
+
+	ctx := context.Background()
+
+	store, err := sqlitestore.Open(ctx, paths.DatabaseFile())
+	if err != nil {
+		return fmt.Errorf("opening store: %w", err)
+	}
+	defer func() { _ = store.Close() }()
+
+	if schema, schemaErr := store.SchemaVersion(ctx); schemaErr == nil {
+		log.Info("store ready", slog.Int("schema_version", schema))
+	}
+
+	// Verify the audit chain at startup so tampering is surfaced early; the
+	// result is exposed in the Audit view (§7.11.8) once that view is wired.
+	auditLog := audit.New(store, nil)
+	if count, verifyErr := auditLog.Verify(ctx); verifyErr != nil {
+		log.Error("audit chain verification failed", slog.Any("error", verifyErr))
+	} else {
+		log.Info("audit chain verified", slog.Int("entries", count))
+	}
 
 	assets, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {

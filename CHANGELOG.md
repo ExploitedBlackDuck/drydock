@@ -27,5 +27,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `Taskfile` and GitHub Actions CI.
   - Architecture Decision Records ADR-0001 … ADR-0014 and governance files
     (`LICENSE`, `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`).
+- **P1 — persistence foundation.**
+  - Pure-Go SQLite store (`sqlitestore`) with embedded forward-only migrations,
+    a schema-version check that refuses a newer-than-supported database, and the
+    §7.7 schema.
+  - Append-only, hash-chained audit log (`audit`) with chain verification and
+    tamper detection.
+  - Secret sealing (`secret`): a `SecretStore` port + XChaCha20-Poly1305 sealing
+    under a per-install data key, backed by the OS keyring adapter.
+  - Store opened/migrated and audit chain verified at startup.
 
 [Unreleased]: https://github.com/drydock/drydock/commits/main
