@@ -6,6 +6,14 @@ export function AddHost(arg1) {
   return window['go']['app']['App']['AddHost'](arg1);
 }
 
+export function ComposeDown(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['ComposeDown'](arg1, arg2, arg3, arg4);
+}
+
+export function ComposeUp(arg1, arg2) {
+  return window['go']['app']['App']['ComposeUp'](arg1, arg2);
+}
+
 export function ConnectHost(arg1) {
   return window['go']['app']['App']['ConnectHost'](arg1);
 }
@@ -40,6 +48,10 @@ export function ListImages(arg1) {
 
 export function ListNetworks(arg1) {
   return window['go']['app']['App']['ListNetworks'](arg1);
+}
+
+export function ListStacks(arg1) {
+  return window['go']['app']['App']['ListStacks'](arg1);
 }
 
 export function ListVolumes(arg1) {

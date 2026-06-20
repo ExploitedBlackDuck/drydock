@@ -78,6 +78,7 @@ export namespace domain {
 	    Status: string;
 	    Ports: Port[];
 	    ComposeProject: string;
+	    ComposeService: string;
 	    // Go type: time
 	    Created: any;
 	
@@ -95,6 +96,7 @@ export namespace domain {
 	        this.Status = source["Status"];
 	        this.Ports = this.convertValues(source["Ports"], Port);
 	        this.ComposeProject = source["ComposeProject"];
+	        this.ComposeService = source["ComposeService"];
 	        this.Created = this.convertValues(source["Created"], null);
 	    }
 	
@@ -297,6 +299,83 @@ export namespace domain {
 		    return a;
 		}
 	}
+	export class StackService {
+	    Name: string;
+	    Containers: Container[];
+	    Running: number;
+	    Total: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new StackService(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Name = source["Name"];
+	        this.Containers = this.convertValues(source["Containers"], Container);
+	        this.Running = source["Running"];
+	        this.Total = source["Total"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class Stack {
+	    Project: string;
+	    HostRef: string;
+	    Services: StackService[];
+	    Running: number;
+	    Total: number;
+	    State: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Stack(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Project = source["Project"];
+	        this.HostRef = source["HostRef"];
+	        this.Services = this.convertValues(source["Services"], StackService);
+	        this.Running = source["Running"];
+	        this.Total = source["Total"];
+	        this.State = source["State"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class Volume {
 	    Name: string;
 	    HostRef: string;

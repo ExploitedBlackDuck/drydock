@@ -5,6 +5,10 @@ import {domain} from '../models';
 
 export function AddHost(arg1:app.AddHostInput):Promise<app.HostDTO>;
 
+export function ComposeDown(arg1:string,arg2:string,arg3:boolean,arg4:boolean):Promise<void>;
+
+export function ComposeUp(arg1:string,arg2:string):Promise<void>;
+
 export function ConnectHost(arg1:string):Promise<app.HostDTO>;
 
 export function DisconnectHost(arg1:string):Promise<void>;
@@ -22,6 +26,8 @@ export function ListHosts():Promise<Array<app.HostDTO>>;
 export function ListImages(arg1:string):Promise<Array<domain.Image>>;
 
 export function ListNetworks(arg1:string):Promise<Array<domain.Network>>;
+
+export function ListStacks(arg1:string):Promise<Array<domain.Stack>>;
 
 export function ListVolumes(arg1:string):Promise<Array<domain.Volume>>;
 

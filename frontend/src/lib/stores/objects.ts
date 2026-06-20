@@ -12,6 +12,7 @@ import {
   type Network,
   type Volume,
 } from '../api/engine';
+import { listStacks, type Stack } from '../api/compose';
 import type { LoadStatus } from './hosts';
 
 export interface ResourceState<T> {
@@ -56,3 +57,4 @@ export const containers = createResource<Container>(listContainers);
 export const images = createResource<Image>(listImages);
 export const volumes = createResource<Volume>(listVolumes);
 export const networks = createResource<Network>(listNetworks);
+export const stacks = createResource<Stack>(listStacks);

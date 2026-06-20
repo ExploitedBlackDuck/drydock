@@ -8,6 +8,7 @@
   import StateMessage from '../components/states/StateMessage.svelte';
   import LoadingState from '../components/states/LoadingState.svelte';
   import ContainersView from './ContainersView.svelte';
+  import ComposeView from './ComposeView.svelte';
   import ImagesView from './ImagesView.svelte';
   import VolumesView from './VolumesView.svelte';
   import NetworksView from './NetworksView.svelte';
@@ -51,6 +52,8 @@
 
     {#if connected && $activeView === ViewId.Containers}
       <ContainersView hostId={host.id} observeMode={host.observeMode} />
+    {:else if connected && $activeView === ViewId.Compose}
+      <ComposeView hostId={host.id} observeMode={host.observeMode} />
     {:else if connected && $activeView === ViewId.Images}
       <ImagesView hostId={host.id} />
     {:else if connected && $activeView === ViewId.Volumes}
