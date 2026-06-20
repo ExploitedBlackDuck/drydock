@@ -1,27 +1,49 @@
 export namespace app {
 	
-	export class LocalEngineStatus {
-	    available: boolean;
-	    hostId: string;
-	    engineVersion: string;
-	    apiVersion: string;
-	    os: string;
-	    arch: string;
-	    degraded: boolean;
+	export class AddHostInput {
+	    name: string;
+	    transport: string;
+	    endpoint: string;
+	    observeMode: boolean;
 	
 	    static createFrom(source: any = {}) {
-	        return new LocalEngineStatus(source);
+	        return new AddHostInput(source);
 	    }
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.available = source["available"];
-	        this.hostId = source["hostId"];
+	        this.name = source["name"];
+	        this.transport = source["transport"];
+	        this.endpoint = source["endpoint"];
+	        this.observeMode = source["observeMode"];
+	    }
+	}
+	export class HostDTO {
+	    id: string;
+	    name: string;
+	    transport: string;
+	    endpoint: string;
+	    trust: string;
+	    observeMode: boolean;
+	    connected: boolean;
+	    engineVersion: string;
+	    apiVersion: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HostDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.transport = source["transport"];
+	        this.endpoint = source["endpoint"];
+	        this.trust = source["trust"];
+	        this.observeMode = source["observeMode"];
+	        this.connected = source["connected"];
 	        this.engineVersion = source["engineVersion"];
 	        this.apiVersion = source["apiVersion"];
-	        this.os = source["os"];
-	        this.arch = source["arch"];
-	        this.degraded = source["degraded"];
 	    }
 	}
 

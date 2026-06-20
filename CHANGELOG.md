@@ -47,5 +47,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     data with loading/error/empty states.
   - Reviewed `govulncheck` allowlist (ADR-0015) for unreachable daemon-side Moby
     advisories with no fixed release.
+- **P3 — SSH transport, multi-host, observe-mode.**
+  - `sshdialer` dials the remote engine socket over SSH (agent + referenced keys,
+    known_hosts verification, supervised keepalive, no leaked tunnel on Close).
+  - `hosts.Registry`: persisted multi-host profiles, supervised connect/
+    disconnect lifecycle, and the observe-mode guard (`Mutate`) that rejects
+    observe-only hosts in the core before any request reaches the engine.
+  - Unauthenticated-TCP detection flags such hosts untrusted (core + wizard).
+  - GUI: backend-driven host switcher, a working add-host wizard (persists +
+    connects, warns on insecure transport), multi-host switching, and an
+    explicit, audited observe-mode toggle.
 
 [Unreleased]: https://github.com/drydock/drydock/commits/main

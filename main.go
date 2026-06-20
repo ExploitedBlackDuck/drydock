@@ -13,10 +13,12 @@ import (
 
 	"github.com/drydock/drydock/app"
 	"github.com/drydock/drydock/frontend"
-	"github.com/drydock/drydock/internal/adapters/dockerengine"
+	"github.com/drydock/drydock/internal/adapters/connector"
 	"github.com/drydock/drydock/internal/adapters/sqlitestore"
 	"github.com/drydock/drydock/internal/core/audit"
+	"github.com/drydock/drydock/internal/core/domain"
 	"github.com/drydock/drydock/internal/core/engine"
+	"github.com/drydock/drydock/internal/core/hosts"
 	"github.com/drydock/drydock/internal/platform/config"
 	"github.com/drydock/drydock/internal/platform/logging"
 )
@@ -80,20 +82,31 @@ func run() error {
 		log.Info("audit chain verified", slog.Int("entries", count))
 	}
 
-	// The local engine is constructed eagerly but connects lazily on first use;
-	// availability is reported to the frontend via app.LocalEngine.
-	localEngine, err := dockerengine.Open(engine.LocalHostID)
-	if err != nil {
-		return fmt.Errorf("creating local engine: %w", err)
+	// Multi-host registry: load saved profiles, then ensure the implicit local
+	// host exists and try to connect it (best effort — a missing daemon is fine).
+	registry := hosts.New(store, connector.New(), auditLog, nil)
+	if err := registry.Load(ctx); err != nil {
+		return fmt.Errorf("loading host registry: %w", err)
 	}
-	defer func() { _ = localEngine.Close() }()
+	if _, err := registry.Add(ctx, domain.Host{
+		ID:        engine.LocalHostID,
+		Name:      "local",
+		Transport: domain.TransportLocal,
+		Endpoint:  "unix:///var/run/docker.sock",
+	}); err != nil {
+		return fmt.Errorf("registering local host: %w", err)
+	}
+	if _, err := registry.Connect(ctx, engine.LocalHostID); err != nil {
+		log.Info("local engine not connected", slog.Any("error", err))
+	}
+	defer func() { _ = registry.Close(context.Background()) }()
 
 	assets, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {
 		return fmt.Errorf("loading embedded frontend: %w", err)
 	}
 
-	return app.Run(assets, log, localEngine, version)
+	return app.Run(assets, log, registry, version)
 }
 
 // buildLogger constructs the operational logger. In dev (text format) it writes

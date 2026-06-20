@@ -4,9 +4,26 @@
   // state, alongside its engine/API version when connected.
   import StatusDot from './StatusDot.svelte';
   import HostBadges from './HostBadges.svelte';
-  import { activeHost } from '../stores/hosts';
+  import Icon from './Icon.svelte';
+  import { activeHost, hosts } from '../stores/hosts';
 
   export let version = '';
+
+  async function toggleObserve() {
+    const host = $activeHost;
+    if (!host) return;
+    const next = !host.observeMode;
+    const verb = next ? 'enable' : 'disable';
+    // Explicit confirmation; the change is audited in the core (ADR-0013).
+    if (
+      !window.confirm(
+        `${verb === 'enable' ? 'Enable' : 'Disable'} observe-only mode for "${host.name}"?`,
+      )
+    ) {
+      return;
+    }
+    await hosts.setObserveMode(host.id, next);
+  }
 </script>
 
 <header>
@@ -26,7 +43,20 @@
     {/if}
   </div>
 
-  {#if version}<span class="app-version">v{version}</span>{/if}
+  <div class="actions">
+    {#if $activeHost}
+      <button
+        class="observe"
+        class:on={$activeHost.observeMode}
+        on:click={toggleObserve}
+        title="Observe-only rejects all mutations in the core"
+      >
+        <Icon name="eye" size={14} />
+        {$activeHost.observeMode ? 'Observe on' : 'Observe off'}
+      </button>
+    {/if}
+    {#if version}<span class="app-version">v{version}</span>{/if}
+  </div>
 </header>
 
 <style>
@@ -72,6 +102,35 @@
   .none {
     color: var(--color-text-faint);
     font-size: var(--text-md);
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex: none;
+  }
+
+  .observe {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--color-border-strong);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 500;
+  }
+
+  .observe:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .observe.on {
+    border-color: var(--color-warn);
+    color: var(--color-warn);
   }
 
   .app-version {

@@ -1,18 +1,12 @@
 <script lang="ts">
   // The add-host wizard (PROJECT-BOOK §7.11.2): choose a transport, name the
-  // host, and provide its endpoint / SSH identity. It records a host profile in
-  // the registry. Live connection testing and engine/API version reporting are
-  // wired when the transport adapters land (P3); the "Test connection" action is
-  // therefore present but disabled, with a note, rather than faking a result.
+  // host, and provide its endpoint / SSH identity. Saving persists the profile
+  // and connects through the registry, which records the engine/API version. A
+  // plain-TCP endpoint is flagged untrusted (ADR-0005).
   import { createEventDispatcher } from 'svelte';
   import Icon from './Icon.svelte';
   import { hosts } from '../stores/hosts';
-  import {
-    Transport,
-    Trust,
-    HostStatus,
-    type Transport as TransportT,
-  } from '../types/domain';
+  import { Transport, type Transport as TransportT } from '../types/domain';
 
   const dispatch = createEventDispatcher<{ close: void }>();
 
@@ -21,6 +15,8 @@
   let endpoint = '';
   let identity = '';
   let observeMode = false;
+  let saving = false;
+  let error: string | null = null;
 
   const placeholders: Record<TransportT, string> = {
     [Transport.Local]: 'unix:///var/run/docker.sock',
@@ -36,20 +32,29 @@
     ];
 
   $: trimmedEndpoint = endpoint.trim() || placeholders[transport];
-  $: canAdd = name.trim().length > 0;
+  $: canAdd = name.trim().length > 0 && !saving;
+  // Mirror the backend's detection (domain.IsInsecureTCP): a plain TCP/HTTP
+  // endpoint without the mTLS transport is an unauthenticated, root-equivalent
+  // socket (ADR-0005).
+  $: insecure =
+    transport !== Transport.TLS && /^(tcp|http):\/\//i.test(trimmedEndpoint);
 
-  function add() {
+  async function add() {
     if (!canAdd) return;
-    hosts.add({
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      transport,
-      endpoint: trimmedEndpoint,
-      trust: Trust.Trusted,
-      observeMode,
-      status: HostStatus.Disconnected,
-    });
-    dispatch('close');
+    saving = true;
+    error = null;
+    try {
+      await hosts.add({
+        name: name.trim(),
+        transport,
+        endpoint: trimmedEndpoint,
+        observeMode,
+      });
+      dispatch('close');
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to add host';
+      saving = false;
+    }
   }
 
   function onKeydown(event: KeyboardEvent) {
@@ -139,21 +144,32 @@
       </label>
     </div>
 
+    {#if insecure}
+      <p class="warning" role="alert">
+        <Icon name="alert" size={14} />
+        This is an unauthenticated TCP socket — root-equivalent and unencrypted.
+        Drydock will mark this host untrusted. Prefer SSH or mTLS.
+      </p>
+    {/if}
+
+    {#if error}
+      <p class="warning" role="alert"><Icon name="alert" size={14} />{error}</p>
+    {/if}
+
     <p class="note">
-      <Icon name="alert" size={14} />
-      Connection testing and engine/API version detection arrive with the transport
-      layer; this saves the host profile.
+      <Icon name="shield" size={14} />
+      Saving connects to the host and records its engine/API version. SSH reuses
+      your agent and keys.
     </p>
 
     <footer>
-      <button class="btn ghost" disabled>Test connection</button>
       <div class="spacer"></div>
       <button class="btn ghost" on:click={() => dispatch('close')}
         >Cancel</button
       >
-      <button class="btn primary" disabled={!canAdd} on:click={add}
-        >Add host</button
-      >
+      <button class="btn primary" disabled={!canAdd} on:click={add}>
+        {saving ? 'Connecting…' : 'Add host'}
+      </button>
     </footer>
   </div>
 </div>
@@ -298,6 +314,18 @@
     font-size: var(--text-xs);
     line-height: 1.5;
     border-top: 1px solid var(--color-border);
+  }
+
+  .warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding: var(--space-3) var(--space-5);
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    font-size: var(--text-xs);
+    line-height: 1.5;
   }
 
   footer {

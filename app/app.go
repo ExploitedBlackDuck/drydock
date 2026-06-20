@@ -8,28 +8,28 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/drydock/drydock/internal/core/engine"
+	"github.com/drydock/drydock/internal/core/hosts"
 	"github.com/drydock/drydock/shell"
 )
 
 // App is the binding target exposed to the frontend. Its exported methods
 // become generated, typed frontend bindings.
 type App struct {
-	log     *slog.Logger
-	runtime shell.Runtime
-	version string
-	engine  engine.Engine
-	ctx     context.Context
+	log      *slog.Logger
+	runtime  shell.Runtime
+	version  string
+	registry *hosts.Registry
+	ctx      context.Context
 }
 
 // New constructs the binding layer with its injected dependencies. Nothing is
 // constructed globally (PROJECT-BOOK §2.3); main is the composition root.
-func New(log *slog.Logger, runtime shell.Runtime, version string, eng engine.Engine) *App {
+func New(log *slog.Logger, runtime shell.Runtime, version string, registry *hosts.Registry) *App {
 	return &App{
-		log:     log,
-		runtime: runtime,
-		version: version,
-		engine:  eng,
+		log:      log,
+		runtime:  runtime,
+		version:  version,
+		registry: registry,
 	}
 }
 

@@ -1,14 +1,17 @@
-// Host registry store (PROJECT-BOOK §7.11.10): the set of known hosts, the
-// active selection, and the load status. Runtime/view state is kept here, not
-// scattered in components. The backend binding that populates the registry lands
-// in P3 (SSH transport + add-host wizard); until then the store reports a ready,
-// empty registry, which drives the "no hosts yet" empty state.
-
+// Host registry store (PROJECT-BOOK §7.11.10), backed by the Go registry. It
+// loads host profiles and their connection state from the backend and exposes
+// actions (add, connect, observe-mode) that round-trip through it.
 import { derived, writable } from 'svelte/store';
-import { HostStatus, Transport, Trust, type Host } from '../types/domain';
-import type { LocalEngineStatus } from '../api/engine';
+import type { Host } from '../types/domain';
+import {
+  addHost as addHostApi,
+  connectHost as connectHostApi,
+  listHosts,
+  removeHost as removeHostApi,
+  setObserveMode as setObserveModeApi,
+  type AddHostInput,
+} from '../api/hosts';
 
-/** Load status for an async-backed collection (drives loading/error/empty UI). */
 export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 interface HostsState {
@@ -19,78 +22,60 @@ interface HostsState {
 }
 
 const initial: HostsState = {
-  status: 'ready',
+  status: 'idle',
   hosts: [],
   activeId: null,
   error: null,
 };
 
-function createHostsStore() {
-  const { subscribe, update, set } = writable<HostsState>(initial);
+function messageOf(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return typeof err === 'string' ? err : 'Unexpected error';
+}
 
-  return {
-    subscribe,
-    /** Replace the registry (called by the binding layer once wired). */
-    setHosts(hosts: Host[]) {
+function createHostsStore() {
+  const { subscribe, update } = writable<HostsState>(initial);
+
+  async function refresh(): Promise<void> {
+    update((s) => ({ ...s, status: s.hosts.length ? s.status : 'loading' }));
+    try {
+      const hosts = await listHosts();
       update((s) => ({
-        ...s,
         status: 'ready',
         hosts,
         error: null,
-        activeId: s.activeId ?? hosts[0]?.id ?? null,
+        activeId:
+          s.activeId && hosts.some((h) => h.id === s.activeId)
+            ? s.activeId
+            : (hosts[0]?.id ?? null),
       }));
-    },
-    /** Mark the registry as loading. */
-    loading() {
-      update((s) => ({ ...s, status: 'loading' }));
-    },
-    /** Record a load failure with a human-readable message from the error DTO. */
-    failed(message: string) {
-      update((s) => ({ ...s, status: 'error', error: message }));
-    },
-    /**
-     * Reflects the local engine (from app.LocalEngine) in the registry: adds or
-     * updates the local host and selects it when reachable. The persisted hosts
-     * registry arrives in P3; this is the implicit local engine of P2.
-     */
-    connectLocal(status: LocalEngineStatus) {
-      if (!status.available) return;
-      const local: Host = {
-        id: status.hostId,
-        name: 'local',
-        transport: Transport.Local,
-        endpoint: 'unix:///var/run/docker.sock',
-        trust: Trust.Trusted,
-        observeMode: false,
-        status: status.degraded ? HostStatus.Degraded : HostStatus.Connected,
-        engineVersion: status.engineVersion,
-        apiVersion: status.apiVersion,
-      };
-      update((s) => {
-        const others = s.hosts.filter((h) => h.id !== local.id);
-        return {
-          ...s,
-          status: 'ready',
-          hosts: [local, ...others],
-          activeId: s.activeId ?? local.id,
-        };
-      });
-    },
-    /** Append a host to the registry and make it active. */
-    add(host: Host) {
-      update((s) => ({
-        ...s,
-        status: 'ready',
-        hosts: [...s.hosts, host],
-        activeId: host.id,
-      }));
-    },
-    /** Select the active host. */
+    } catch (err) {
+      update((s) => ({ ...s, status: 'error', error: messageOf(err) }));
+    }
+  }
+
+  return {
+    subscribe,
+    refresh,
     select(id: string) {
       update((s) => ({ ...s, activeId: id }));
     },
-    reset() {
-      set(initial);
+    async add(input: AddHostInput): Promise<void> {
+      const host = await addHostApi(input);
+      await refresh();
+      update((s) => ({ ...s, activeId: host.id }));
+    },
+    async connect(id: string): Promise<void> {
+      await connectHostApi(id);
+      await refresh();
+    },
+    async remove(id: string): Promise<void> {
+      await removeHostApi(id);
+      await refresh();
+    },
+    async setObserveMode(id: string, observe: boolean): Promise<void> {
+      await setObserveModeApi(id, observe);
+      await refresh();
     },
   };
 }
