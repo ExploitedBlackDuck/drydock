@@ -10,7 +10,10 @@
       { "IP": "0.0.0.0", "PrivatePort": 80, "PublicPort": 8080, "Type": "tcp" },
       { "PrivatePort": 443, "Type": "tcp" }
     ],
-    "Labels": { "com.docker.compose.project": "shop" },
+    "Labels": {
+      "com.docker.compose.project": "shop",
+      "com.docker.compose.service": "web"
+    },
     "State": "running",
     "Status": "Up 3 hours"
   },

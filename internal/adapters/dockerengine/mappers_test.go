@@ -42,6 +42,7 @@ func TestMapContainersFromFixture(t *testing.T) {
 	assert.Equal(t, hostRef, web.HostRef)
 	assert.Equal(t, "running", web.State)
 	assert.Equal(t, "shop", web.ComposeProject)
+	assert.Equal(t, "web", web.ComposeService)
 	assert.Equal(t, time.Unix(1718800000, 0).UTC(), web.Created)
 	require.Len(t, web.Ports, 2)
 	assert.Equal(t, domain.Port{IP: "0.0.0.0", PrivatePort: 80, PublicPort: 8080, Protocol: "tcp"}, web.Ports[0])

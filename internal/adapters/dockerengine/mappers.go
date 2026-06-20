@@ -12,8 +12,12 @@ import (
 	"github.com/drydock/drydock/internal/core/domain"
 )
 
-// composeProjectLabel is the label Compose stamps on a project's containers.
-const composeProjectLabel = "com.docker.compose.project"
+// Labels Compose stamps on a project's containers, used to group them into
+// stacks (PROJECT-BOOK §7.11.6) and to select a project's objects for up/down.
+const (
+	composeProjectLabel = "com.docker.compose.project"
+	composeServiceLabel = "com.docker.compose.service"
+)
 
 // noneRef is how the engine reports an untagged ("dangling") image.
 const noneRef = "<none>:<none>"
@@ -44,6 +48,7 @@ func mapContainer(hostRef string, c container.Summary) domain.Container {
 		Status:         c.Status,
 		Ports:          ports,
 		ComposeProject: c.Labels[composeProjectLabel],
+		ComposeService: c.Labels[composeServiceLabel],
 		Created:        time.Unix(c.Created, 0).UTC(),
 	}
 }

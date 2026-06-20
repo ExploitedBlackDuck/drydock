@@ -33,6 +33,7 @@ type Container struct {
 	Status         string
 	Ports          []Port
 	ComposeProject string
+	ComposeService string
 	Created        time.Time
 }
 

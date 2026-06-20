@@ -107,6 +107,24 @@ func (s *Service) Exec(ctx context.Context, hostID, containerID string, spec eng
 	return stream, nil
 }
 
+// ComposeUp brings a Compose stack up by starting its containers. It is not
+// destructive (it only starts what already exists), so no acknowledgement is
+// required; it still passes the observe-mode guard and is recorded and audited.
+func (s *Service) ComposeUp(ctx context.Context, hostID, project string) error {
+	return s.run(ctx, hostID, domain.OpComposeUp, project, map[string]any{"project": project}, true,
+		func(ctx context.Context, e engine.Engine) error { return e.ComposeUp(ctx, project) })
+}
+
+// ComposeDown takes a Compose stack down. It is destructive (it removes the
+// stack's containers), so ack must be true; when volumes is true it also removes
+// the stack's named volumes — compose `down -v`, which the impact-rule engine
+// gates behind acknowledgement (PROJECT-BOOK §7.5/§7.11.6).
+func (s *Service) ComposeDown(ctx context.Context, hostID, project string, volumes, ack bool) error {
+	optionSet := map[string]any{"project": project, "volumes": volumes, "ack": ack}
+	return s.run(ctx, hostID, domain.OpComposeDown, project, optionSet, ack,
+		func(ctx context.Context, e engine.Engine) error { return e.ComposeDown(ctx, project, volumes) })
+}
+
 // PruneImages removes dangling images (or all unused when all is true).
 func (s *Service) PruneImages(ctx context.Context, hostID string, all, ack bool) (int64, error) {
 	return s.prune(ctx, hostID, domain.OpImagePrune, ack,

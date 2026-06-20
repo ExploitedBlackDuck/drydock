@@ -101,6 +101,16 @@ type Engine interface {
 	// volume-prune: volumes are only ever removed one at a time (ADR-0011, §7.4).
 	RemoveVolume(ctx context.Context, name string, force bool) error
 
+	// ComposeUp brings a Compose stack up by starting every (stopped) container
+	// the project's label selects. The stack is acted on as a unit over the SDK —
+	// there is no compose-binary shell-out, so it works identically for local and
+	// SSH-tunnelled hosts (ADR-0003/0004, §7.11.6).
+	ComposeUp(ctx context.Context, project string) error
+	// ComposeDown takes a Compose stack down: it stops and removes the project's
+	// containers. When volumes is true it also removes the project's named volumes
+	// (compose `down -v`), which the caller must have acknowledged (§7.5).
+	ComposeDown(ctx context.Context, project string, volumes bool) error
+
 	// StreamEvents delivers engine events to sink until ctx is cancelled. It
 	// drives live UI updates and restart-loop detection (§7.6).
 	StreamEvents(ctx context.Context, sink func(domain.EngineEvent)) error

@@ -17,6 +17,8 @@ import (
 // fakeEngine records which mutation was invoked.
 type fakeEngine struct {
 	started, stopped, removed bool
+	composeUp                 bool
+	composeDownVolumes        *bool
 }
 
 func (e *fakeEngine) Info(context.Context) (domain.EngineInfo, error) {
@@ -64,6 +66,13 @@ func (e *fakeEngine) PruneImages(context.Context, bool) (int64, error) {
 func (e *fakeEngine) PruneBuildCache(context.Context) (int64, error) { return 0, nil }
 func (e *fakeEngine) RemoveVolume(context.Context, string, bool) error {
 	e.removed = true
+	return nil
+}
+
+func (e *fakeEngine) ComposeUp(context.Context, string) error { e.composeUp = true; return nil }
+
+func (e *fakeEngine) ComposeDown(_ context.Context, _ string, volumes bool) error {
+	e.composeDownVolumes = &volumes
 	return nil
 }
 
@@ -190,6 +199,41 @@ func TestRemoveVolumeRequiresAckAndIsPerVolume(t *testing.T) {
 	require.Len(t, aud.records, 1)
 	assert.Equal(t, domain.ActionVolumeRemove, aud.records[0].Action)
 	assert.Equal(t, "db-data", aud.records[0].Subject)
+}
+
+func TestComposeUpStartsStackWithoutAck(t *testing.T) {
+	svc, m, store, aud := newService(false)
+
+	require.NoError(t, svc.ComposeUp(context.Background(), "h1", "blog"))
+	assert.True(t, m.eng.composeUp)
+	require.Len(t, store.ops, 1)
+	assert.Equal(t, domain.OpComposeUp, store.ops[0].Kind)
+	assert.Equal(t, "blog", store.ops[0].Target)
+	require.Len(t, aud.records, 1)
+	assert.Equal(t, domain.ActionComposeUp, aud.records[0].Action)
+}
+
+func TestComposeDownRequiresAcknowledgement(t *testing.T) {
+	svc, m, store, _ := newService(false)
+
+	err := svc.ComposeDown(context.Background(), "h1", "blog", true, false)
+	assert.ErrorIs(t, err, operations.ErrConfirmationRequired)
+	assert.False(t, m.called, "no engine call without acknowledgement")
+	assert.Empty(t, store.ops, "an unconfirmed down -v is not recorded")
+}
+
+func TestComposeDownVolumesWithAckProceeds(t *testing.T) {
+	svc, m, store, aud := newService(false)
+
+	require.NoError(t, svc.ComposeDown(context.Background(), "h1", "blog", true, true))
+	require.NotNil(t, m.eng.composeDownVolumes)
+	assert.True(t, *m.eng.composeDownVolumes, "down -v passes volumes through to the engine")
+	require.Len(t, store.ops, 1)
+	assert.Equal(t, domain.OpComposeDown, store.ops[0].Kind)
+	assert.Equal(t, true, store.ops[0].OptionSet["volumes"])
+	require.Len(t, aud.records, 1)
+	assert.Equal(t, domain.ActionComposeDown, aud.records[0].Action)
+	assert.Equal(t, true, aud.records[0].Detail["volumes"])
 }
 
 func TestObserveModeRejectsAndIsRecorded(t *testing.T) {
