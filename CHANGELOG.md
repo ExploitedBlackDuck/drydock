@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-20
+
+First tagged release: the complete P0–P9 build plan plus the interactive exec
+terminal.
+
 ### Added
 
 - **P0 — skeleton & charter scaffolding.** Repository layout, composition root,
@@ -150,4 +155,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Tagged integration test opens a TTY exec, writes, reads the echoed bytes,
     resizes, and closes against a real daemon with no goroutine leak.
 
-[Unreleased]: https://github.com/drydock/drydock/commits/main
+[Unreleased]: https://github.com/ExploitedBlackDuck/drydock/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/ExploitedBlackDuck/drydock/releases/tag/v0.1.0
