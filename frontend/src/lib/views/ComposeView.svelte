@@ -161,7 +161,7 @@
         aria-label="Close detail">✕</button
       >
       {#key selected.ID}
-        <ContainerDetail {hostId} container={selected} />
+        <ContainerDetail {hostId} container={selected} {observeMode} />
       {/key}
     </div>
   {/if}

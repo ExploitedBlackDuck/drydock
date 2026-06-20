@@ -94,8 +94,16 @@ export function RemoveVolume(arg1, arg2, arg3) {
   return window['go']['app']['App']['RemoveVolume'](arg1, arg2, arg3);
 }
 
+export function ResizeExec(arg1, arg2, arg3) {
+  return window['go']['app']['App']['ResizeExec'](arg1, arg2, arg3);
+}
+
 export function RestartContainer(arg1, arg2) {
   return window['go']['app']['App']['RestartContainer'](arg1, arg2);
+}
+
+export function SendExecInput(arg1, arg2) {
+  return window['go']['app']['App']['SendExecInput'](arg1, arg2);
 }
 
 export function SetObserveMode(arg1, arg2) {
@@ -104,6 +112,10 @@ export function SetObserveMode(arg1, arg2) {
 
 export function StartContainer(arg1, arg2) {
   return window['go']['app']['App']['StartContainer'](arg1, arg2);
+}
+
+export function StartExec(arg1, arg2, arg3) {
+  return window['go']['app']['App']['StartExec'](arg1, arg2, arg3);
 }
 
 export function StopContainer(arg1, arg2) {
@@ -116,6 +128,10 @@ export function StopContainerLogs(arg1) {
 
 export function StopContainerStats(arg1) {
   return window['go']['app']['App']['StopContainerStats'](arg1);
+}
+
+export function StopExec(arg1) {
+  return window['go']['app']['App']['StopExec'](arg1);
 }
 
 export function StreamContainerLogs(arg1, arg2) {

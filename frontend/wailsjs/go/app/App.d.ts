@@ -50,17 +50,25 @@ export function RemoveHost(arg1:string):Promise<void>;
 
 export function RemoveVolume(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
+export function ResizeExec(arg1:string,arg2:number,arg3:number):Promise<void>;
+
 export function RestartContainer(arg1:string,arg2:string):Promise<void>;
+
+export function SendExecInput(arg1:string,arg2:string):Promise<void>;
 
 export function SetObserveMode(arg1:string,arg2:boolean):Promise<void>;
 
 export function StartContainer(arg1:string,arg2:string):Promise<void>;
+
+export function StartExec(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function StopContainer(arg1:string,arg2:string):Promise<void>;
 
 export function StopContainerLogs(arg1:string):Promise<void>;
 
 export function StopContainerStats(arg1:string):Promise<void>;
+
+export function StopExec(arg1:string):Promise<void>;
 
 export function StreamContainerLogs(arg1:string,arg2:string):Promise<void>;
 

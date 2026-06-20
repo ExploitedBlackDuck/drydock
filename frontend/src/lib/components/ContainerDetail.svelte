@@ -17,10 +17,20 @@
     type StatsSample,
   } from '../api/operations';
   import { getResourceHistory } from '../api/dashboard';
+  import ExecTerminal from './ExecTerminal.svelte';
   import type { Container } from '../api/engine';
 
   export let hostId: string;
   export let container: Container;
+  export let observeMode = false;
+
+  // The detail body switches between the streamed logs and an interactive shell
+  // (PROJECT-BOOK §7.11.4). Exec is a mutation, so it is unavailable on
+  // observe-only hosts.
+  type Tab = 'logs' | 'shell';
+  let tab: Tab = 'logs';
+  $: running = container.State === 'running';
+  $: canShell = running && !observeMode;
 
   const MAX_LINES = 2000;
   const MAX_HISTORY = 120;
@@ -88,15 +98,44 @@
     </div>
   </header>
 
-  <div class="logs" bind:this={logEl}>
-    {#if lines.length === 0}
-      <p class="empty">
-        <Icon name="history" size={16} /> Waiting for log output…
-      </p>
-    {:else}
-      {#each lines as line, i (i)}<div class="line">{line}</div>{/each}
-    {/if}
+  <div class="tabs" role="tablist">
+    <button
+      class="tab"
+      class:active={tab === 'logs'}
+      role="tab"
+      aria-selected={tab === 'logs'}
+      on:click={() => (tab = 'logs')}>Logs</button
+    >
+    <button
+      class="tab"
+      class:active={tab === 'shell'}
+      role="tab"
+      aria-selected={tab === 'shell'}
+      disabled={!canShell}
+      title={canShell
+        ? 'Open an interactive shell'
+        : observeMode
+          ? 'Host is observe-only'
+          : 'Container is not running'}
+      on:click={() => (tab = 'shell')}>Shell</button
+    >
   </div>
+
+  {#if tab === 'logs'}
+    <div class="logs" bind:this={logEl}>
+      {#if lines.length === 0}
+        <p class="empty">
+          <Icon name="history" size={16} /> Waiting for log output…
+        </p>
+      {:else}
+        {#each lines as line, i (i)}<div class="line">{line}</div>{/each}
+      {/if}
+    </div>
+  {:else if canShell}
+    {#key container.ID}
+      <ExecTerminal {hostId} containerId={container.ID} />
+    {/key}
+  {/if}
 </section>
 
 <style>
@@ -161,6 +200,33 @@
     display: inline-flex;
     align-items: center;
     opacity: 0.9;
+  }
+
+  .tabs {
+    flex: none;
+    display: flex;
+    gap: 2px;
+    padding: 0 var(--space-5);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .tab {
+    padding: 6px 12px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+  .tab:hover:not(:disabled) {
+    color: var(--color-text);
+  }
+  .tab.active {
+    color: var(--color-text);
+    border-bottom-color: var(--color-accent);
+  }
+  .tab:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   .logs {
