@@ -16,6 +16,7 @@ import (
 	"github.com/drydock/drydock/internal/core/audit"
 	"github.com/drydock/drydock/internal/core/domain"
 	"github.com/drydock/drydock/internal/core/engine"
+	"github.com/drydock/drydock/internal/core/prune"
 )
 
 // ErrConfirmationRequired is returned when a destructive operation is attempted
@@ -28,9 +29,10 @@ type Mutator interface {
 	Mutate(ctx context.Context, hostID string, fn func(context.Context, engine.Engine) error) error
 }
 
-// Store persists operation records.
+// Store persists operation records and the prune impacts confirmed for them.
 type Store interface {
 	SaveOperation(ctx context.Context, op domain.Operation) error
+	SavePruneImpact(ctx context.Context, operationID string, impact domain.PruneImpact) error
 }
 
 // Auditor records consequential actions.
@@ -103,6 +105,102 @@ func (s *Service) Exec(ctx context.Context, hostID, containerID string, spec eng
 		return nil, err
 	}
 	return stream, nil
+}
+
+// PruneImages removes dangling images (or all unused when all is true).
+func (s *Service) PruneImages(ctx context.Context, hostID string, all, ack bool) (int64, error) {
+	return s.prune(ctx, hostID, domain.OpImagePrune, ack,
+		func(ctx context.Context, e engine.Engine) (int64, error) { return e.PruneImages(ctx, all) })
+}
+
+// PruneContainers removes stopped containers.
+func (s *Service) PruneContainers(ctx context.Context, hostID string, ack bool) (int64, error) {
+	return s.prune(ctx, hostID, domain.OpContainerPrune, ack,
+		func(ctx context.Context, e engine.Engine) (int64, error) { return e.PruneContainers(ctx) })
+}
+
+// PruneBuildCache removes unused build cache.
+func (s *Service) PruneBuildCache(ctx context.Context, hostID string, ack bool) (int64, error) {
+	return s.prune(ctx, hostID, domain.OpBuildCachePrune, ack,
+		func(ctx context.Context, e engine.Engine) (int64, error) { return e.PruneBuildCache(ctx) })
+}
+
+// RemoveVolume removes a single named volume (never a bulk prune; ADR-0011).
+func (s *Service) RemoveVolume(ctx context.Context, hostID, name string, ack bool) error {
+	if !ack {
+		return fmt.Errorf("%w: %s", ErrConfirmationRequired, domain.OpVolumeRemove)
+	}
+	started := s.now()
+	err := s.mutator.Mutate(ctx, hostID, func(ctx context.Context, e engine.Engine) error {
+		return e.RemoveVolume(ctx, name, false)
+	})
+	s.record(ctx, hostID, domain.OpVolumeRemove, name, map[string]any{"ack": true}, started, s.now(), err)
+	return err
+}
+
+// prune runs a prune operation: it captures the impact at confirm time, executes
+// it, and records both the confirmed impact and the bytes reclaimed with an
+// acknowledged audit entry (PROJECT-BOOK §7.8).
+func (s *Service) prune(
+	ctx context.Context,
+	hostID string,
+	kind domain.OperationKind,
+	ack bool,
+	exec func(context.Context, engine.Engine) (int64, error),
+) (int64, error) {
+	if !ack {
+		return 0, fmt.Errorf("%w: %s", ErrConfirmationRequired, kind)
+	}
+
+	started := s.now()
+	var reclaimed int64
+	var impact domain.PruneImpact
+	err := s.mutator.Mutate(ctx, hostID, func(ctx context.Context, e engine.Engine) error {
+		if du, derr := e.DiskUsage(ctx); derr == nil {
+			impact = prune.Compute(du)
+		}
+		r, perr := exec(ctx, e)
+		reclaimed = r
+		return perr
+	})
+
+	op := domain.Operation{
+		ID:             newID(),
+		HostRef:        hostID,
+		Kind:           kind,
+		OptionSet:      map[string]any{"ack": true},
+		Result:         resultOf(err),
+		BytesReclaimed: reclaimed,
+		StartedAt:      started,
+		EndedAt:        s.now(),
+	}
+	if s.store != nil {
+		_ = s.store.SaveOperation(ctx, op)
+		if err == nil {
+			_ = s.store.SavePruneImpact(ctx, op.ID, impact)
+		}
+	}
+	if s.auditor != nil {
+		_, _ = s.auditor.Append(ctx, audit.Record{
+			Action:  auditAction(kind),
+			HostRef: hostID,
+			Subject: string(kind),
+			Detail: map[string]any{
+				"result":            op.Result,
+				"ack":               true,
+				"bytes_reclaimed":   reclaimed,
+				"total_reclaimable": impact.TotalReclaimable,
+			},
+		})
+	}
+	return reclaimed, err
+}
+
+func resultOf(err error) string {
+	if err != nil {
+		return "error: " + err.Error()
+	}
+	return "ok"
 }
 
 func (s *Service) run(
@@ -181,6 +279,18 @@ func auditAction(kind domain.OperationKind) domain.Action {
 		return domain.ActionContainerRemove
 	case domain.OpContainerExec:
 		return domain.ActionContainerExec
+	case domain.OpImagePrune:
+		return domain.ActionImagePrune
+	case domain.OpContainerPrune:
+		return domain.ActionContainerPrune
+	case domain.OpBuildCachePrune:
+		return domain.ActionBuildCachePrune
+	case domain.OpVolumeRemove:
+		return domain.ActionVolumeRemove
+	case domain.OpComposeUp:
+		return domain.ActionComposeUp
+	case domain.OpComposeDown:
+		return domain.ActionComposeDown
 	default:
 		return domain.Action(kind)
 	}

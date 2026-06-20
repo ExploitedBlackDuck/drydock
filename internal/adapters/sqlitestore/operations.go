@@ -27,6 +27,21 @@ func (s *Store) SaveOperation(ctx context.Context, op domain.Operation) error {
 	return nil
 }
 
+// SavePruneImpact persists the per-category impact that was confirmed for an
+// operation (PROJECT-BOOK §7.7). The operation must already exist (FK).
+func (s *Store) SavePruneImpact(ctx context.Context, operationID string, impact domain.PruneImpact) error {
+	for _, cat := range impact.Categories {
+		_, err := s.db.ExecContext(ctx,
+			`INSERT INTO prune_impacts (operation_id, category, object_count, reclaimable_bytes)
+			 VALUES (?, ?, ?, ?)`,
+			operationID, string(cat.Kind), cat.ObjectCount, cat.ReclaimableBytes)
+		if err != nil {
+			return fmt.Errorf("saving prune impact for operation %q: %w", operationID, err)
+		}
+	}
+	return nil
+}
+
 // SaveResourceSample appends one rolling-history resource sample.
 func (s *Store) SaveResourceSample(ctx context.Context, sample domain.ResourceSample) error {
 	_, err := s.db.ExecContext(ctx,

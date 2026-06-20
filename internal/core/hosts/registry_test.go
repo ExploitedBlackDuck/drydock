@@ -101,7 +101,15 @@ func (e *fakeEngine) StreamStats(context.Context, string, func(domain.ResourceSa
 func (e *fakeEngine) Exec(context.Context, string, engine.ExecSpec) (engine.ExecStream, error) {
 	return nil, nil
 }
-func (e *fakeEngine) Close() error { e.closed = true; return nil }
+
+func (e *fakeEngine) DiskUsage(context.Context) (domain.DiskUsage, error) {
+	return domain.DiskUsage{}, nil
+}
+func (e *fakeEngine) PruneContainers(context.Context) (int64, error)   { return 0, nil }
+func (e *fakeEngine) PruneImages(context.Context, bool) (int64, error) { return 0, nil }
+func (e *fakeEngine) PruneBuildCache(context.Context) (int64, error)   { return 0, nil }
+func (e *fakeEngine) RemoveVolume(context.Context, string, bool) error { return nil }
+func (e *fakeEngine) Close() error                                     { e.closed = true; return nil }
 
 type fakeConnector struct {
 	engines []*fakeEngine

@@ -50,6 +50,22 @@ func (e *fakeEngine) StreamStats(context.Context, string, func(domain.ResourceSa
 func (e *fakeEngine) Exec(context.Context, string, engine.ExecSpec) (engine.ExecStream, error) {
 	return nil, nil
 }
+
+func (e *fakeEngine) DiskUsage(context.Context) (domain.DiskUsage, error) {
+	return domain.DiskUsage{
+		Images: []domain.DiskImage{{ID: "i", Size: 1000, Dangling: true}},
+	}, nil
+}
+func (e *fakeEngine) PruneContainers(context.Context) (int64, error) { return 0, nil }
+func (e *fakeEngine) PruneImages(context.Context, bool) (int64, error) {
+	e.removed = true
+	return 1000, nil
+}
+func (e *fakeEngine) PruneBuildCache(context.Context) (int64, error) { return 0, nil }
+func (e *fakeEngine) RemoveVolume(context.Context, string, bool) error {
+	e.removed = true
+	return nil
+}
 func (e *fakeEngine) Close() error { return nil }
 
 // fakeMutator emulates the registry guard: when observe is set, it rejects with
@@ -68,10 +84,21 @@ func (m *fakeMutator) Mutate(ctx context.Context, _ string, fn func(context.Cont
 	return fn(ctx, m.eng)
 }
 
-type fakeStore struct{ ops []domain.Operation }
+type fakeStore struct {
+	ops     []domain.Operation
+	impacts map[string]domain.PruneImpact
+}
 
 func (s *fakeStore) SaveOperation(_ context.Context, op domain.Operation) error {
 	s.ops = append(s.ops, op)
+	return nil
+}
+
+func (s *fakeStore) SavePruneImpact(_ context.Context, operationID string, impact domain.PruneImpact) error {
+	if s.impacts == nil {
+		s.impacts = map[string]domain.PruneImpact{}
+	}
+	s.impacts[operationID] = impact
 	return nil
 }
 
@@ -118,6 +145,47 @@ func TestRemoveWithAckProceeds(t *testing.T) {
 	assert.True(t, m.eng.removed)
 	require.Len(t, store.ops, 1)
 	assert.Equal(t, domain.OpContainerRemove, store.ops[0].Kind)
+}
+
+func TestPruneRequiresAck(t *testing.T) {
+	svc, m, _, _ := newService(false)
+	_, err := svc.PruneImages(context.Background(), "h1", false, false)
+	assert.ErrorIs(t, err, operations.ErrConfirmationRequired)
+	assert.False(t, m.called)
+}
+
+func TestPruneWritesImpactAndAckToAudit(t *testing.T) {
+	svc, _, store, aud := newService(false)
+
+	reclaimed, err := svc.PruneImages(context.Background(), "h1", false, true)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1000), reclaimed)
+
+	// Operation recorded with the bytes reclaimed.
+	require.Len(t, store.ops, 1)
+	assert.Equal(t, domain.OpImagePrune, store.ops[0].Kind)
+	assert.Equal(t, int64(1000), store.ops[0].BytesReclaimed)
+	// Confirmed impact persisted for the operation.
+	require.Contains(t, store.impacts, store.ops[0].ID)
+	// Audit entry carries the acknowledgement and the impact.
+	require.Len(t, aud.records, 1)
+	assert.Equal(t, domain.ActionImagePrune, aud.records[0].Action)
+	assert.Equal(t, true, aud.records[0].Detail["ack"])
+	assert.Contains(t, aud.records[0].Detail, "bytes_reclaimed")
+}
+
+func TestRemoveVolumeRequiresAckAndIsPerVolume(t *testing.T) {
+	svc, m, _, aud := newService(false)
+
+	// Without ack, no engine call (volumes are never bulk-deleted; each confirmed).
+	assert.ErrorIs(t, svc.RemoveVolume(context.Background(), "h1", "db-data", false), operations.ErrConfirmationRequired)
+	assert.False(t, m.called)
+
+	require.NoError(t, svc.RemoveVolume(context.Background(), "h1", "db-data", true))
+	assert.True(t, m.eng.removed)
+	require.Len(t, aud.records, 1)
+	assert.Equal(t, domain.ActionVolumeRemove, aud.records[0].Action)
+	assert.Equal(t, "db-data", aud.records[0].Subject)
 }
 
 func TestObserveModeRejectsAndIsRecorded(t *testing.T) {

@@ -25,9 +25,11 @@ const (
 	ActionContainerRemove  Action = "container.remove"
 	ActionContainerExec    Action = "container.exec"
 
-	ActionImagePrune  Action = "image.prune"
-	ActionVolumeprune Action = "volume.prune"
-	ActionSystemPrune Action = "system.prune"
+	ActionImagePrune      Action = "image.prune"
+	ActionContainerPrune  Action = "container.prune"
+	ActionBuildCachePrune Action = "buildcache.prune"
+	ActionVolumeRemove    Action = "volume.remove"
+	ActionSystemPrune     Action = "system.prune"
 
 	ActionComposeUp   Action = "compose.up"
 	ActionComposeDown Action = "compose.down"

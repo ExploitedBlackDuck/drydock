@@ -13,13 +13,23 @@ const (
 	OpContainerKill    OperationKind = "container.kill"
 	OpContainerRemove  OperationKind = "container.remove"
 	OpContainerExec    OperationKind = "container.exec"
+
+	OpImagePrune      OperationKind = "image.prune"
+	OpContainerPrune  OperationKind = "container.prune"
+	OpBuildCachePrune OperationKind = "buildcache.prune"
+	OpVolumeRemove    OperationKind = "volume.remove"
+
+	OpComposeUp   OperationKind = "compose.up"
+	OpComposeDown OperationKind = "compose.down"
 )
 
 // Destructive reports whether the operation can lose data or in-flight work and
 // therefore requires an explicit acknowledgement (ADR-0011).
 func (k OperationKind) Destructive() bool {
 	switch k {
-	case OpContainerRemove, OpContainerKill:
+	case OpContainerRemove, OpContainerKill,
+		OpImagePrune, OpContainerPrune, OpBuildCachePrune, OpVolumeRemove,
+		OpComposeDown:
 		return true
 	default:
 		return false

@@ -89,6 +89,18 @@ type Engine interface {
 	// Exec starts a command (argv) inside a container and returns its stream.
 	Exec(ctx context.Context, id string, spec ExecSpec) (ExecStream, error)
 
+	// DiskUsage returns the engine's `system df` for the prune-impact preview.
+	DiskUsage(ctx context.Context) (domain.DiskUsage, error)
+	// PruneContainers removes stopped containers, returning bytes reclaimed.
+	PruneContainers(ctx context.Context) (int64, error)
+	// PruneImages removes dangling images, or all unused images when all is true.
+	PruneImages(ctx context.Context, all bool) (int64, error)
+	// PruneBuildCache removes unused build cache, returning bytes reclaimed.
+	PruneBuildCache(ctx context.Context) (int64, error)
+	// RemoveVolume removes a single named volume. There is deliberately no bulk
+	// volume-prune: volumes are only ever removed one at a time (ADR-0011, §7.4).
+	RemoveVolume(ctx context.Context, name string, force bool) error
+
 	// Close releases the engine connection and any associated resources.
 	Close() error
 }
