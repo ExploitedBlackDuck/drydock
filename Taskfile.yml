@@ -89,6 +89,23 @@ tasks:
     cmds:
       - wails dev -ldflags "-X main.version={{.VERSION}}"
 
+  build:reproducible:
+    desc: "Gate (P9): build the desktop binary twice and confirm they are identical."
+    cmds:
+      - VERSION={{.VERSION}} bash scripts/reproducible-build.sh
+
+  package:linux:
+    desc: "Build the Linux .deb + AppImage (needs nfpm + linuxdeploy; ADR-0012)."
+    deps: [build]
+    cmds:
+      - VERSION={{.VERSION}} ARCH=amd64 bash scripts/package-linux.sh
+
+  package:macos:
+    desc: "Sign + notarize the macOS app (needs SIGN_IDENTITY + notary creds; ADR-0012)."
+    deps: [build]
+    cmds:
+      - VERSION={{.VERSION}} bash scripts/package-macos.sh
+
   clean:
     cmds:
       - rm -rf {{.BIN_DIR}} frontend/dist/assets

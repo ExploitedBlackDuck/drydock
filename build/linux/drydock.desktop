@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Drydock
+GenericName=Docker Control Panel
+Comment=A desktop control panel for local and remote Docker hosts
+Exec=drydock
+Icon=drydock
+Terminal=false
+Categories=Development;System;Utility;
+Keywords=docker;containers;compose;devops;
+StartupNotify=true
+StartupWMClass=drydock

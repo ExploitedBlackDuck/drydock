@@ -1,6 +1,7 @@
 # Build output
 /build/bin/
 /dist/
+/SHA256SUMS
 
 # Frontend build artifacts and deps
 /frontend/node_modules/

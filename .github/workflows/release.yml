@@ -1,0 +1,163 @@
+name: Release
+
+# Cut a release by pushing a signed semver tag (ADR-0012, §9):
+#   git tag -s v1.2.3 -m 'Drydock 1.2.3' && git push origin v1.2.3
+# Produces a signed+notarized macOS zip, a Linux .deb and AppImage, a
+# reproducible-build attestation, and published SHA-256 checksums.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the GitHub Release and upload assets
+
+env:
+  GO_VERSION: "1.26.4"
+  NODE_VERSION: "22"
+  WAILS_VERSION: "v2.10.1"
+
+jobs:
+  macos:
+    name: macOS (sign + notarize)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+      - name: Resolve version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+      - name: Detect signing configuration
+        id: signing
+        # The `secrets` context cannot be used in an `if:`, so we probe it here in
+        # `run` and emit an output the later steps gate on. A fork without an
+        # Apple identity simply ships an unsigned artifact.
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+        run: |
+          if [ -n "$MACOS_CERTIFICATE" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No macOS signing certificate configured — building an unsigned artifact."
+          fi
+      - name: Import signing certificate
+        if: steps.signing.outputs.configured == 'true'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          echo "$MACOS_CERTIFICATE" | base64 --decode > cert.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security import cert.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          rm -f cert.p12
+      - name: Build
+        run: wails build -trimpath -ldflags "-X main.version=${VERSION} -buildid="
+      - name: Package (sign + notarize when configured)
+        env:
+          SIGN_IDENTITY: ${{ steps.signing.outputs.configured == 'true' && secrets.MACOS_SIGN_IDENTITY || '' }}
+          MACOS_NOTARY_KEY: ${{ secrets.MACOS_NOTARY_KEY }}
+          AC_API_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
+          AC_API_ISSUER: ${{ secrets.MACOS_NOTARY_ISSUER }}
+          AC_API_KEY_PATH: notary_key.p8
+        run: |
+          if [ -n "$MACOS_NOTARY_KEY" ]; then
+            echo "$MACOS_NOTARY_KEY" | base64 --decode > notary_key.p8
+          fi
+          bash scripts/package-macos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*.zip
+          if-no-files-found: error
+
+  linux:
+    name: Linux (.deb + AppImage)
+    runs-on: ubuntu-latest
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: "1"
+      LINUXDEPLOY_VERSION: "1-alpha-20240109-1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: System dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+      - name: Install tooling
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.41.0
+          curl -fsSL -o /usr/local/bin/linuxdeploy \
+            "https://github.com/linuxdeploy/linuxdeploy/releases/download/${LINUXDEPLOY_VERSION}/linuxdeploy-x86_64.AppImage"
+          chmod +x /usr/local/bin/linuxdeploy
+      - name: Resolve version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+      - name: Build
+        run: wails build -trimpath -ldflags "-X main.version=${VERSION} -buildid="
+      - name: Package
+        run: VERSION="${VERSION}" ARCH=amd64 bash scripts/package-linux.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/*.deb
+            dist/*.AppImage
+          if-no-files-found: error
+
+  reproducibility:
+    name: Reproducible-build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: System dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+      - name: Build twice and compare
+        run: VERSION="${GITHUB_REF_NAME#v}" bash scripts/reproducible-build.sh
+
+  release:
+    name: Publish release
+    needs: [macos, linux, reproducibility]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Collect artifacts and checksums
+        run: |
+          mkdir -p dist
+          find artifacts -type f \( -name '*.zip' -o -name '*.deb' -o -name '*.AppImage' \) -exec cp {} dist/ \;
+          bash scripts/checksums.sh dist/*
+          cp SHA256SUMS dist/SHA256SUMS
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

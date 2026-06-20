@@ -1,0 +1,32 @@
+# nfpm configuration for the Drydock .deb (ADR-0012, §9). Version, arch, and the
+# built binary are supplied via environment variables so CI drives it from the
+# release tag without editing this file. Build with:
+#   VERSION=1.2.3 ARCH=amd64 BIN=build/bin/drydock nfpm package -p deb -f build/linux/nfpm.yaml
+name: drydock
+arch: ${ARCH}
+version: ${VERSION}
+version_schema: semver
+section: utils
+priority: optional
+maintainer: The Drydock Authors <drydock@drydock.dev>
+description: |
+  Drydock — a desktop control panel for Docker hosts.
+  Manage local and remote (SSH) Docker engines: containers, Compose stacks,
+  images, volumes, networks, disk usage, and a tamper-evident audit log.
+vendor: The Drydock Authors
+homepage: https://github.com/drydock/drydock
+license: Apache-2.0
+depends:
+  - libgtk-3-0
+  - libwebkit2gtk-4.1-0
+contents:
+  - src: ${BIN}
+    dst: /usr/bin/drydock
+    file_info:
+      mode: 0755
+  - src: build/linux/drydock.desktop
+    dst: /usr/share/applications/drydock.desktop
+  - src: build/appicon.png
+    dst: /usr/share/icons/hicolor/512x512/apps/drydock.png
+  - src: LICENSE
+    dst: /usr/share/doc/drydock/copyright

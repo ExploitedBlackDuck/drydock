@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Hardened-runtime entitlements for the notarized macOS build (ADR-0012, §9).
+  Kept minimal: Drydock talks to local and remote Docker over sockets/SSH, so it
+  needs outbound network and (for the WKWebView JIT) the JIT entitlement, and
+  nothing more. No camera, microphone, file-access, or disabled library
+  validation — every entitlement here is one Gatekeeper will scrutinise.
+-->
+<plist version="1.0">
+  <dict>
+    <!-- WKWebView's JavaScript engine requires JIT under the hardened runtime. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <!-- Outbound connections to Docker daemons (local socket proxy, SSH, TLS). -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+  </dict>
+</plist>
