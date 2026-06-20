@@ -88,5 +88,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - GUI: a restart-loop callout for the active host and a CPU resource-history
     sparkline in the container detail (seeded from persisted history, extended
     live).
+- **P7 — Compose stacks.**
+  - `compose.Group` partitions a host's containers into stacks by the
+    `com.docker.compose.project`/`.service` labels, computing per-service and
+    aggregate running/total counts and a running/partial/stopped state (pure,
+    unit-tested against fixtures).
+  - Engine port gained `ComposeUp`/`ComposeDown(volumes)`: the stack is acted on
+    as a unit over the SDK by label selection — no compose-binary shell-out — so
+    it behaves identically for local and SSH-tunnelled hosts (ADR-0003/0004).
+  - `operations.Service` runs compose up/down through the observe guard and
+    records/audits them; `down` is destructive (removes the stack's containers)
+    and `down -v` additionally removes the project's named volumes, both gated by
+    acknowledgement (the impact-rule engine already flags `COMPOSE_DOWN_VOLUMES`).
+  - GUI: a Compose view grouping stacks as cards with per-service status, a
+    stack-state pill, up/down/`down -v` controls (observe-aware, confirmed), and
+    per-container logs/stats via the shared detail drawer.
+  - Tagged integration test synthesizes a labelled two-service stack, confirms
+    discovery/grouping, takes it down as a unit, and asserts the containers are
+    removed.
 
 [Unreleased]: https://github.com/drydock/drydock/commits/main
