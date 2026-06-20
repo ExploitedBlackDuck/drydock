@@ -1,0 +1,12 @@
+# Reviewed govulncheck exceptions. One OSV id per line; text after '#' is the
+# justification. Any vulnerability affecting our code that is NOT listed here
+# fails the build (scripts/govulncheck.sh). See docs/adr/0015 for the policy.
+#
+# These two are daemon-side Moby vulnerabilities. Drydock is a Docker *client*
+# (ADR-0003): it never runs the daemon, installs plugins, or implements
+# authorization plugins, so neither vulnerable code path is reachable from our
+# list/inspect usage. govulncheck flags them only via the moby monorepo's
+# package init graph. No fixed release exists.
+
+GO-2026-4883  # Moby daemon plugin-privilege off-by-one; not reachable from client use
+GO-2026-4887  # Moby daemon AuthZ-plugin bypass; not reachable from client use

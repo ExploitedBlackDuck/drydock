@@ -22,3 +22,4 @@ undocumented edit. Each record states its Context, Decision, and Consequences.
 | [0012](./0012-signed-notarized-packaging.md) | Signed/notarized macOS, reproducible Linux packaging | Accepted |
 | [0013](./0013-observe-mode.md) | Per-host observe (read-only) mode | Accepted |
 | [0014](./0014-composition-root-at-repo-root.md) | Composition root at the repository root | Accepted |
+| [0015](./0015-govulncheck-allowlist.md) | Reviewed govulncheck allowlist for unfixable, unreachable advisories | Accepted |

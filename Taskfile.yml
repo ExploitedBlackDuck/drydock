@@ -45,7 +45,8 @@ tasks:
       - gofumpt -l -d $(go list -f '{{`{{.Dir}}`}}' {{.GO_PKGS}}) | (! grep .)
       - go vet {{.GO_PKGS}}
       - golangci-lint run
-      - govulncheck {{.GO_PKGS}}
+      # Triages govulncheck against the reviewed allowlist (see ADR-0015).
+      - bash scripts/govulncheck.sh {{.GO_PKGS}}
 
   lint:frontend:
     desc: "svelte-check (strict tsc) + ESLint + Prettier."

@@ -1,0 +1,27 @@
+{
+  "Volumes": [
+    {
+      "Name": "shop_db-data",
+      "Driver": "local",
+      "Mountpoint": "/var/lib/docker/volumes/shop_db-data/_data",
+      "Labels": { "com.docker.compose.project": "shop" },
+      "Scope": "local",
+      "UsageData": { "RefCount": 1, "Size": 104857600 }
+    },
+    {
+      "Name": "scratch",
+      "Driver": "local",
+      "Mountpoint": "/var/lib/docker/volumes/scratch/_data",
+      "Labels": null,
+      "Scope": "local",
+      "UsageData": { "RefCount": 0, "Size": 0 }
+    },
+    {
+      "Name": "no-usage",
+      "Driver": "local",
+      "Mountpoint": "/var/lib/docker/volumes/no-usage/_data",
+      "Scope": "local"
+    }
+  ],
+  "Warnings": null
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "Id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "RepoTags": ["registry.example.com/team/web:1.4.2"],
+    "RepoDigests": ["registry.example.com/team/web@sha256:aaaa"],
+    "Size": 182452345,
+    "Containers": 1,
+    "Created": 1718000000
+  },
+  {
+    "Id": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "RepoTags": ["<none>:<none>"],
+    "RepoDigests": ["<none>@<none>"],
+    "Size": 54320000,
+    "Containers": -1,
+    "Created": 1717000000
+  },
+  {
+    "Id": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "RepoTags": ["registry.example.com:5000/team/cache:edge"],
+    "RepoDigests": [],
+    "Size": 12000000,
+    "Containers": 0,
+    "Created": 1716000000
+  }
+]
