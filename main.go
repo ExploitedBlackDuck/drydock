@@ -13,8 +13,10 @@ import (
 
 	"github.com/drydock/drydock/app"
 	"github.com/drydock/drydock/frontend"
+	"github.com/drydock/drydock/internal/adapters/dockerengine"
 	"github.com/drydock/drydock/internal/adapters/sqlitestore"
 	"github.com/drydock/drydock/internal/core/audit"
+	"github.com/drydock/drydock/internal/core/engine"
 	"github.com/drydock/drydock/internal/platform/config"
 	"github.com/drydock/drydock/internal/platform/logging"
 )
@@ -78,12 +80,20 @@ func run() error {
 		log.Info("audit chain verified", slog.Int("entries", count))
 	}
 
+	// The local engine is constructed eagerly but connects lazily on first use;
+	// availability is reported to the frontend via app.LocalEngine.
+	localEngine, err := dockerengine.Open(engine.LocalHostID)
+	if err != nil {
+		return fmt.Errorf("creating local engine: %w", err)
+	}
+	defer func() { _ = localEngine.Close() }()
+
 	assets, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {
 		return fmt.Errorf("loading embedded frontend: %w", err)
 	}
 
-	return app.Run(assets, log, version)
+	return app.Run(assets, log, localEngine, version)
 }
 
 // buildLogger constructs the operational logger. In dev (text format) it writes

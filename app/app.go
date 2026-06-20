@@ -8,6 +8,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/drydock/drydock/internal/core/engine"
 	"github.com/drydock/drydock/shell"
 )
 
@@ -17,21 +18,26 @@ type App struct {
 	log     *slog.Logger
 	runtime shell.Runtime
 	version string
+	engine  engine.Engine
+	ctx     context.Context
 }
 
 // New constructs the binding layer with its injected dependencies. Nothing is
 // constructed globally (PROJECT-BOOK §2.3); main is the composition root.
-func New(log *slog.Logger, runtime shell.Runtime, version string) *App {
+func New(log *slog.Logger, runtime shell.Runtime, version string, eng engine.Engine) *App {
 	return &App{
 		log:     log,
 		runtime: runtime,
 		version: version,
+		engine:  eng,
 	}
 }
 
 // startup is invoked by the desktop shell once the window and runtime are
-// ready. It receives the binding context used for the app's lifetime.
+// ready. It receives the binding context used for the app's lifetime, which
+// scopes engine requests so cancellation propagates on quit (PROJECT-BOOK §2.3).
 func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
 	a.log.Info("drydock starting", slog.String("version", a.version))
 	a.runtime.EmitEvent(ctx, EventAppReady, a.version)
 }

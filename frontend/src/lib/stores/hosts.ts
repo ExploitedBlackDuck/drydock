@@ -5,7 +5,8 @@
 // empty registry, which drives the "no hosts yet" empty state.
 
 import { derived, writable } from 'svelte/store';
-import type { Host } from '../types/domain';
+import { HostStatus, Transport, Trust, type Host } from '../types/domain';
+import type { LocalEngineStatus } from '../api/engine';
 
 /** Load status for an async-backed collection (drives loading/error/empty UI). */
 export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -46,6 +47,34 @@ function createHostsStore() {
     /** Record a load failure with a human-readable message from the error DTO. */
     failed(message: string) {
       update((s) => ({ ...s, status: 'error', error: message }));
+    },
+    /**
+     * Reflects the local engine (from app.LocalEngine) in the registry: adds or
+     * updates the local host and selects it when reachable. The persisted hosts
+     * registry arrives in P3; this is the implicit local engine of P2.
+     */
+    connectLocal(status: LocalEngineStatus) {
+      if (!status.available) return;
+      const local: Host = {
+        id: status.hostId,
+        name: 'local',
+        transport: Transport.Local,
+        endpoint: 'unix:///var/run/docker.sock',
+        trust: Trust.Trusted,
+        observeMode: false,
+        status: status.degraded ? HostStatus.Degraded : HostStatus.Connected,
+        engineVersion: status.engineVersion,
+        apiVersion: status.apiVersion,
+      };
+      update((s) => {
+        const others = s.hosts.filter((h) => h.id !== local.id);
+        return {
+          ...s,
+          status: 'ready',
+          hosts: [local, ...others],
+          activeId: s.activeId ?? local.id,
+        };
+      });
     },
     /** Append a host to the registry and make it active. */
     add(host: Host) {

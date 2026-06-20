@@ -36,5 +36,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Secret sealing (`secret`): a `SecretStore` port + XChaCha20-Poly1305 sealing
     under a per-install data key, backed by the OS keyring adapter.
   - Store opened/migrated and audit chain verified at startup.
+- **P2 — local engine (read-only).**
+  - `Engine` port and a Docker Go SDK adapter (`dockerengine`) with per-host API
+    version negotiation and list of containers/images/volumes/networks; pure
+    SDK→domain mappers table-tested against sanitized captured fixtures.
+  - Tagged integration test lists against a real daemon and asserts no leaked
+    connections.
+  - The local engine is surfaced in the GUI: it appears in the host switcher
+    when reachable, and the Containers/Images/Volumes/Networks views render live
+    data with loading/error/empty states.
+  - Reviewed `govulncheck` allowlist (ADR-0015) for unreachable daemon-side Moby
+    advisories with no fixed release.
 
 [Unreleased]: https://github.com/drydock/drydock/commits/main

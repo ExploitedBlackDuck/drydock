@@ -9,6 +9,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
+	"github.com/drydock/drydock/internal/core/engine"
 	"github.com/drydock/drydock/shell"
 )
 
@@ -22,9 +23,10 @@ const (
 )
 
 // Run constructs the binding layer and starts the desktop application, blocking
-// until the window closes. assets is the embedded, built frontend.
-func Run(assets fs.FS, log *slog.Logger, version string) error {
-	application := New(log, shell.WailsRuntime{}, version)
+// until the window closes. assets is the embedded, built frontend; eng is the
+// local engine exposed to the frontend.
+func Run(assets fs.FS, log *slog.Logger, eng engine.Engine, version string) error {
+	application := New(log, shell.WailsRuntime{}, version, eng)
 
 	err := wails.Run(&options.App{
 		Title:     "Drydock",

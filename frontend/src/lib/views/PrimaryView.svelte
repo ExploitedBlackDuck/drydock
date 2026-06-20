@@ -7,8 +7,12 @@
   import ViewShell from './ViewShell.svelte';
   import StateMessage from '../components/states/StateMessage.svelte';
   import LoadingState from '../components/states/LoadingState.svelte';
+  import ContainersView from './ContainersView.svelte';
+  import ImagesView from './ImagesView.svelte';
+  import VolumesView from './VolumesView.svelte';
+  import NetworksView from './NetworksView.svelte';
   import { VIEW_CONTENT } from './content';
-  import { VIEWS } from '../types/view';
+  import { ViewId, VIEWS } from '../types/view';
   import { activeView } from '../stores/navigation';
   import { HostStatus, type Host } from '../types/domain';
 
@@ -16,6 +20,8 @@
 
   $: meta = VIEWS.find((v) => v.id === $activeView)!;
   $: content = VIEW_CONTENT[$activeView];
+  $: connected =
+    host.status === HostStatus.Connected || host.status === HostStatus.Degraded;
 </script>
 
 <ViewShell title={meta.label} description={content.description}>
@@ -41,11 +47,22 @@
         supported API version, so some features are unavailable.
       </div>
     {/if}
-    <StateMessage
-      icon={content.icon}
-      title={content.emptyTitle}
-      message={content.emptyMessage}
-    />
+
+    {#if connected && $activeView === ViewId.Containers}
+      <ContainersView hostId={host.id} />
+    {:else if connected && $activeView === ViewId.Images}
+      <ImagesView hostId={host.id} />
+    {:else if connected && $activeView === ViewId.Volumes}
+      <VolumesView hostId={host.id} />
+    {:else if connected && $activeView === ViewId.Networks}
+      <NetworksView hostId={host.id} />
+    {:else}
+      <StateMessage
+        icon={content.icon}
+        title={content.emptyTitle}
+        message={content.emptyMessage}
+      />
+    {/if}
   {/if}
 </ViewShell>
 

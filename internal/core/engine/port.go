@@ -16,6 +16,10 @@ import (
 // than failing opaquely (ADR-0008).
 const MinAPIVersion = "1.41"
 
+// LocalHostID is the identifier for the implicit local engine. Multi-host
+// profiles with their own identifiers arrive with the hosts registry (P3).
+const LocalHostID = "local"
+
 // Engine is the port for a single connected engine. All methods take a context
 // so cancellation (UI "stop"/"disconnect") propagates to the request and the
 // underlying connection (PROJECT-BOOK §2.3). Read-only in this phase; mutating

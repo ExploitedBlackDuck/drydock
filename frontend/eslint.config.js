@@ -21,6 +21,10 @@ export default ts.config(
     languageOptions: {
       globals: {
         ...globals.browser,
+        // Svelte compiler type macros (not runtime values).
+        $$Generic: 'readonly',
+        $$Props: 'readonly',
+        $$Slots: 'readonly',
       },
     },
   },
