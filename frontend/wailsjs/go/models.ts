@@ -182,6 +182,74 @@ export namespace domain {
 	    }
 	}
 	
+	export class PruneCategory {
+	    Kind: string;
+	    Label: string;
+	    ObjectCount: number;
+	    ReclaimableBytes: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PruneCategory(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Kind = source["Kind"];
+	        this.Label = source["Label"];
+	        this.ObjectCount = source["ObjectCount"];
+	        this.ReclaimableBytes = source["ReclaimableBytes"];
+	    }
+	}
+	export class VolumeRef {
+	    Name: string;
+	    Size: number;
+	    InUse: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new VolumeRef(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Name = source["Name"];
+	        this.Size = source["Size"];
+	        this.InUse = source["InUse"];
+	    }
+	}
+	export class PruneImpact {
+	    Categories: PruneCategory[];
+	    Volumes: VolumeRef[];
+	    TotalReclaimable: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PruneImpact(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Categories = this.convertValues(source["Categories"], PruneCategory);
+	        this.Volumes = this.convertValues(source["Volumes"], VolumeRef);
+	        this.TotalReclaimable = source["TotalReclaimable"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Volume {
 	    Name: string;
 	    HostRef: string;

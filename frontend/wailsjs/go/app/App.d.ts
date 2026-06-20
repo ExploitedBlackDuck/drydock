@@ -9,6 +9,8 @@ export function ConnectHost(arg1:string):Promise<app.HostDTO>;
 
 export function DisconnectHost(arg1:string):Promise<void>;
 
+export function GetPruneImpact(arg1:string):Promise<domain.PruneImpact>;
+
 export function KillContainer(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
 export function ListContainers(arg1:string):Promise<Array<domain.Container>>;
@@ -21,9 +23,17 @@ export function ListNetworks(arg1:string):Promise<Array<domain.Network>>;
 
 export function ListVolumes(arg1:string):Promise<Array<domain.Volume>>;
 
+export function PruneBuildCache(arg1:string,arg2:boolean):Promise<number>;
+
+export function PruneContainers(arg1:string,arg2:boolean):Promise<number>;
+
+export function PruneImages(arg1:string,arg2:boolean,arg3:boolean):Promise<number>;
+
 export function RemoveContainer(arg1:string,arg2:string,arg3:boolean,arg4:boolean,arg5:boolean):Promise<void>;
 
 export function RemoveHost(arg1:string):Promise<void>;
+
+export function RemoveVolume(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
 export function RestartContainer(arg1:string,arg2:string):Promise<void>;
 

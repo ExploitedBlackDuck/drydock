@@ -14,6 +14,10 @@ export function DisconnectHost(arg1) {
   return window['go']['app']['App']['DisconnectHost'](arg1);
 }
 
+export function GetPruneImpact(arg1) {
+  return window['go']['app']['App']['GetPruneImpact'](arg1);
+}
+
 export function KillContainer(arg1, arg2, arg3) {
   return window['go']['app']['App']['KillContainer'](arg1, arg2, arg3);
 }
@@ -38,12 +42,28 @@ export function ListVolumes(arg1) {
   return window['go']['app']['App']['ListVolumes'](arg1);
 }
 
+export function PruneBuildCache(arg1, arg2) {
+  return window['go']['app']['App']['PruneBuildCache'](arg1, arg2);
+}
+
+export function PruneContainers(arg1, arg2) {
+  return window['go']['app']['App']['PruneContainers'](arg1, arg2);
+}
+
+export function PruneImages(arg1, arg2, arg3) {
+  return window['go']['app']['App']['PruneImages'](arg1, arg2, arg3);
+}
+
 export function RemoveContainer(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['app']['App']['RemoveContainer'](arg1, arg2, arg3, arg4, arg5);
 }
 
 export function RemoveHost(arg1) {
   return window['go']['app']['App']['RemoveHost'](arg1);
+}
+
+export function RemoveVolume(arg1, arg2, arg3) {
+  return window['go']['app']['App']['RemoveVolume'](arg1, arg2, arg3);
 }
 
 export function RestartContainer(arg1, arg2) {
