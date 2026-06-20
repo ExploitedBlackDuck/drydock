@@ -79,5 +79,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - GUI: a Disk dashboard with per-category reclaimable space (build cache
     first-class), confirm-before-prune, and per-volume removal (never bulk),
     disabled on observe-only hosts.
+- **P6 — disk & resource dashboard + restart-loop detection.**
+  - Engine event stream (`dockerengine`, fixture-tested) feeding a
+    `restartloop.Detector` that flags crash-looping containers within a sliding
+    window (tested against an event fixture).
+  - `history.Retention` sweeps resource samples beyond the configured window,
+    run as an owned background goroutine.
+  - GUI: a restart-loop callout for the active host and a CPU resource-history
+    sparkline in the container detail (seeded from persisted history, extended
+    live).
 
 [Unreleased]: https://github.com/drydock/drydock/commits/main
