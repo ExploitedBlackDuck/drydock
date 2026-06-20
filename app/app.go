@@ -30,6 +30,11 @@ type App struct {
 	// streams tracks live log/stats streams so they can be cancelled.
 	streamMu sync.Mutex
 	streams  map[string]context.CancelFunc
+
+	// execs tracks live interactive exec sessions by id so input, resize, and
+	// teardown reach the right stream.
+	execMu sync.Mutex
+	execs  map[string]*execSession
 }
 
 // New constructs the binding layer with its injected dependencies. Nothing is
@@ -44,6 +49,7 @@ func New(log *slog.Logger, runtime shell.Runtime, version string, registry *host
 		journal:  jrnl,
 		samples:  samples,
 		streams:  map[string]context.CancelFunc{},
+		execs:    map[string]*execSession{},
 	}
 }
 

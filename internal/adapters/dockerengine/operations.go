@@ -10,6 +10,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 
 	"github.com/drydock/drydock/internal/core/domain"
@@ -146,18 +147,33 @@ func (c *Client) Exec(ctx context.Context, id string, spec engine.ExecSpec) (eng
 	if err != nil {
 		return nil, fmt.Errorf("attaching exec in container %q: %w", id, err)
 	}
-	return &execStream{resp: attached}, nil
+	return &execStream{resp: attached, cli: c.cli, execID: created.ID}, nil
 }
 
-// execStream adapts the SDK's hijacked connection to io.ReadWriteCloser: read
-// container output from the reader, write stdin to the connection.
+// execStream adapts the SDK's hijacked connection to engine.ExecStream: read
+// container output from the reader, write stdin to the connection, resize the
+// remote TTY by exec id, and tear the connection down on Close.
 type execStream struct {
-	resp types.HijackedResponse
+	resp   types.HijackedResponse
+	cli    *client.Client
+	execID string
 }
 
 func (e *execStream) Read(p []byte) (int, error)  { return e.resp.Reader.Read(p) }
 func (e *execStream) Write(p []byte) (int, error) { return e.resp.Conn.Write(p) }
 func (e *execStream) Close() error                { e.resp.Close(); return nil }
+
+// Resize adjusts the remote pseudo-TTY so full-screen programs (vim, top) render
+// to the terminal pane's real dimensions.
+func (e *execStream) Resize(ctx context.Context, cols, rows uint16) error {
+	if err := e.cli.ContainerExecResize(ctx, e.execID, container.ResizeOptions{
+		Height: uint(rows),
+		Width:  uint(cols),
+	}); err != nil {
+		return fmt.Errorf("resizing exec %q: %w", e.execID, err)
+	}
+	return nil
+}
 
 // buildExecOptions maps an ExecSpec to SDK exec options. The command is passed
 // as argv; nothing is interpolated into a shell.

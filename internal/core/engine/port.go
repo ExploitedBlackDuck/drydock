@@ -39,9 +39,13 @@ type ExecSpec struct {
 	Tty        bool
 }
 
-// ExecStream is the bidirectional I/O of a running exec session.
+// ExecStream is the bidirectional I/O of a running exec session: read the
+// container's output, write the operator's keystrokes, Resize the remote TTY as
+// the terminal pane changes, and Close to end the session.
 type ExecStream interface {
 	io.ReadWriteCloser
+	// Resize sets the remote pseudo-TTY to cols×rows character cells.
+	Resize(ctx context.Context, cols, rows uint16) error
 }
 
 // MinAPIVersion is the lowest Docker Engine API version Drydock fully supports.
