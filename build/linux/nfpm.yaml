@@ -27,7 +27,7 @@ contents:
       mode: 0755
   - src: build/linux/drydock.desktop
     dst: /usr/share/applications/drydock.desktop
-  - src: build/appicon.png
+  - src: build/linux/drydock.png
     dst: /usr/share/icons/hicolor/512x512/apps/drydock.png
   - src: LICENSE
     dst: /usr/share/doc/drydock/copyright

@@ -29,7 +29,7 @@ build_appimage() {
   appdir="$(mktemp -d)/AppDir"
   install -Dm755 "$BIN" "$appdir/usr/bin/drydock"
   install -Dm644 build/linux/drydock.desktop "$appdir/usr/share/applications/drydock.desktop"
-  install -Dm644 build/appicon.png "$appdir/usr/share/icons/hicolor/512x512/apps/drydock.png"
+  install -Dm644 build/linux/drydock.png "$appdir/usr/share/icons/hicolor/512x512/apps/drydock.png"
   ARCH="$(uname -m)" OUTPUT="dist/Drydock-${VERSION}-$(uname -m).AppImage" \
     linuxdeploy --appdir "$appdir" \
       --desktop-file "$appdir/usr/share/applications/drydock.desktop" \
