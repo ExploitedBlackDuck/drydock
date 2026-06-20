@@ -12,6 +12,9 @@ cd "$(dirname "$0")/.."
 
 VERSION="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo dev)}"
 LDFLAGS="-X main.version=${VERSION} -buildid="
+# Extra build tags (e.g. webkit2_41 on a WebKit2GTK-4.1 Linux runner).
+TAGS_FLAG=""
+[ -n "${BUILD_TAGS:-}" ] && TAGS_FLAG="-tags ${BUILD_TAGS}"
 
 case "$(uname -s)" in
   Darwin) BIN="build/bin/drydock.app/Contents/MacOS/drydock" ;;
@@ -33,7 +36,8 @@ normalize() {
 build() {
   echo "==> build $1"
   rm -rf build/bin
-  wails build -trimpath -ldflags "$LDFLAGS" >/dev/null
+  # shellcheck disable=SC2086 # TAGS_FLAG is an intentional word-split argument
+  wails build $TAGS_FLAG -trimpath -ldflags "$LDFLAGS" >/dev/null
 }
 
 work="$(mktemp -d)"

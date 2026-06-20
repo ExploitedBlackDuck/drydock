@@ -109,7 +109,8 @@ jobs:
       - name: Resolve version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
       - name: Build
-        run: wails build -trimpath -ldflags "-X main.version=${VERSION} -buildid="
+        # ubuntu-latest ships WebKit2GTK 4.1 only; the webkit2_41 tag selects it.
+        run: wails build -tags webkit2_41 -trimpath -ldflags "-X main.version=${VERSION} -buildid="
       - name: Package
         run: VERSION="${VERSION}" ARCH=amd64 bash scripts/package-linux.sh
       - uses: actions/upload-artifact@v4
@@ -138,7 +139,8 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
       - name: Build twice and compare
-        run: VERSION="${GITHUB_REF_NAME#v}" bash scripts/reproducible-build.sh
+        # WebKit2GTK 4.1 on ubuntu-latest needs the webkit2_41 tag.
+        run: VERSION="${GITHUB_REF_NAME#v}" BUILD_TAGS=webkit2_41 bash scripts/reproducible-build.sh
 
   release:
     name: Publish release
