@@ -30,7 +30,8 @@ jobs:
       - name: go vet
         run: go vet ./...
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        # v7+ is required for golangci-lint v2 (the v2.x config this repo uses).
+        uses: golangci/golangci-lint-action@v7
         with:
           version: ${{ env.GOLANGCI_VERSION }}
       - name: govulncheck
