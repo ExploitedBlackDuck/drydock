@@ -106,5 +106,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Tagged integration test synthesizes a labelled two-service stack, confirms
     discovery/grouping, takes it down as a unit, and asserts the containers are
     removed.
+- **P8 — operation history & audit view + export.**
+  - `Store.Operations` query with a `domain.OperationQuery` filter (by host,
+    kind set, time window, and limit) composed entirely in the store from bound
+    parameters; `domain.DestructiveKinds` drives the destructive-only filter from
+    the same source of truth as `OperationKind.Destructive`.
+  - `internal/core/journal` read model: history queries, an audit-trail view that
+    verifies the hash chain in memory (via the extracted pure
+    `audit.VerifyEntries`) for a green/red indicator, and a portable JSON export
+    of every operation plus the full chain that re-verifies on its own.
+  - App bindings `OperationHistory`, `AuditTrail`, and `ExportJournal`; the export
+    downloads from the webview with no backend file APIs.
+  - GUI: a History view (kind + destructive-only filters, per-operation result
+    and reclaimed bytes) and an Audit view (chain-verification chip, entry table,
+    tamper detail), both with one-click export.
+  - Gates met: store query tests (host/kind/time/limit/round-trip), audit
+    tamper-detection and export round-trip tests, and an independent
+    exported-chain verification.
 
 [Unreleased]: https://github.com/drydock/drydock/commits/main
