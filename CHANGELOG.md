@@ -139,5 +139,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `scripts/checksums.sh` emits verifiable `SHA256SUMS`.
   - `docs/RELEASING.md` documents the tag-driven process, the signing secrets,
     download verification, and the pinned toolchain.
+- **Interactive exec terminal** (completes the P4 deferral, §7.11.4).
+  - The `ExecStream` port gained `Resize`; the Docker adapter resizes the remote
+    pseudo-TTY by exec id. App bindings `StartExec`/`SendExecInput`/`ResizeExec`/
+    `StopExec` run a guarded, audited session whose output streams base64-encoded
+    on `exec:<id>` and whose teardown closes the connection (no leak).
+  - GUI: an xterm-based **Shell** tab in the container detail drawer, disabled on
+    observe-only hosts and for stopped containers, fitted to the pane and resized
+    live. The command is a shell binary (argv), never `sh -c` of input (ADR-0004).
+  - Tagged integration test opens a TTY exec, writes, reads the echoed bytes,
+    resizes, and closes against a real daemon with no goroutine leak.
 
 [Unreleased]: https://github.com/drydock/drydock/commits/main
