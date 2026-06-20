@@ -36,6 +36,45 @@ func (k OperationKind) Destructive() bool {
 	}
 }
 
+// allKinds is the full catalogue, ordered, so DestructiveKinds and any future
+// enumeration stay in one place.
+var allKinds = []OperationKind{
+	OpContainerStart, OpContainerStop, OpContainerRestart, OpContainerKill,
+	OpContainerRemove, OpContainerExec,
+	OpImagePrune, OpContainerPrune, OpBuildCachePrune, OpVolumeRemove,
+	OpComposeUp, OpComposeDown,
+}
+
+// DestructiveKinds returns the operation kinds that lose data or in-flight work,
+// used to drive the history view's destructive-only filter (PROJECT-BOOK §7.11.8)
+// from the same source of truth as Destructive.
+func DestructiveKinds() []OperationKind {
+	out := make([]OperationKind, 0, len(allKinds))
+	for _, k := range allKinds {
+		if k.Destructive() {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// OperationQuery filters the recorded operation history (PROJECT-BOOK §7.11.8).
+// Every field is optional; the zero value matches all operations. The store
+// composes the SQL — callers never do (PROJECT-BOOK §2.8).
+type OperationQuery struct {
+	// HostRef restricts to one host; empty matches all hosts.
+	HostRef string
+	// Kinds restricts to these operation kinds; empty matches all kinds.
+	Kinds []OperationKind
+	// Since and Until bound StartedAt (Since inclusive, Until exclusive); a zero
+	// time leaves that side unbounded.
+	Since time.Time
+	Until time.Time
+	// Limit caps the number of rows returned (most recent first); 0 means the
+	// store's default cap.
+	Limit int
+}
+
 // Operation is a recorded mutating operation and its outcome (PROJECT-BOOK §7.1,
 // ADR-0010). It is persisted immutably.
 type Operation struct {

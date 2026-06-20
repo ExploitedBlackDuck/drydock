@@ -10,6 +10,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
 	"github.com/drydock/drydock/internal/core/hosts"
+	"github.com/drydock/drydock/internal/core/journal"
 	"github.com/drydock/drydock/internal/core/operations"
 	"github.com/drydock/drydock/shell"
 )
@@ -27,8 +28,8 @@ const (
 // until the window closes. assets is the embedded, built frontend; registry is
 // the multi-host registry, ops performs guarded mutations, and samples persists
 // resource history.
-func Run(assets fs.FS, log *slog.Logger, registry *hosts.Registry, ops *operations.Service, samples SampleStore, version string) error {
-	application := New(log, shell.WailsRuntime{}, version, registry, ops, samples)
+func Run(assets fs.FS, log *slog.Logger, registry *hosts.Registry, ops *operations.Service, jrnl *journal.Service, samples SampleStore, version string) error {
+	application := New(log, shell.WailsRuntime{}, version, registry, ops, jrnl, samples)
 
 	err := wails.Run(&options.App{
 		Title:     "Drydock",

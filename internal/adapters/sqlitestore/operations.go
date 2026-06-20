@@ -2,12 +2,18 @@ package sqlitestore
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/drydock/drydock/internal/core/domain"
 )
+
+// defaultOperationLimit caps an unfiltered history query so a long-lived install
+// never streams its entire operations table into the UI by accident.
+const defaultOperationLimit = 500
 
 // SaveOperation persists a completed operation record. Records are immutable.
 func (s *Store) SaveOperation(ctx context.Context, op domain.Operation) error {
@@ -25,6 +31,100 @@ func (s *Store) SaveOperation(ctx context.Context, op domain.Operation) error {
 		return fmt.Errorf("saving operation %q: %w", op.ID, err)
 	}
 	return nil
+}
+
+// Operations returns recorded operations matching the query, most recent first
+// (PROJECT-BOOK §7.11.8). All SQL composition lives here; the WHERE clause is
+// built from bound parameters only — no value is ever interpolated into the
+// statement (ADR-0004/§2.8).
+func (s *Store) Operations(ctx context.Context, q domain.OperationQuery) ([]domain.Operation, error) {
+	var (
+		where []string
+		args  []any
+	)
+	if q.HostRef != "" {
+		where = append(where, "host_id = ?")
+		args = append(args, q.HostRef)
+	}
+	if len(q.Kinds) > 0 {
+		placeholders := make([]string, len(q.Kinds))
+		for i, k := range q.Kinds {
+			placeholders[i] = "?"
+			args = append(args, string(k))
+		}
+		where = append(where, "kind IN ("+strings.Join(placeholders, ", ")+")")
+	}
+	if !q.Since.IsZero() {
+		where = append(where, "started_at >= ?")
+		args = append(args, q.Since.UTC().UnixNano())
+	}
+	if !q.Until.IsZero() {
+		where = append(where, "started_at < ?")
+		args = append(args, q.Until.UTC().UnixNano())
+	}
+
+	query := `SELECT id, host_id, kind, target, option_set, result, bytes_reclaimed,
+	                 started_at, ended_at
+	          FROM operations`
+	if len(where) > 0 {
+		// The joined fragments are constant column predicates with bound `?`
+		// placeholders; every value travels via args, never the string (ADR-0004).
+		query += " WHERE " + strings.Join(where, " AND ") //nolint:gosec // G202: predicates are constants; values are bound parameters
+	}
+	query += " ORDER BY started_at DESC"
+	// Limit: >0 caps to that many; 0 applies the default cap; <0 is unbounded
+	// (used by export, which is the whole record, not a page).
+	if q.Limit >= 0 {
+		limit := q.Limit
+		if limit == 0 {
+			limit = defaultOperationLimit
+		}
+		query += " LIMIT ?"
+		args = append(args, limit)
+	}
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("querying operations: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var ops []domain.Operation
+	for rows.Next() {
+		op, scanErr := scanOperation(rows)
+		if scanErr != nil {
+			return nil, fmt.Errorf("scanning operation: %w", scanErr)
+		}
+		ops = append(ops, op)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating operations: %w", err)
+	}
+	return ops, nil
+}
+
+// scanOperation reads one operations row into the domain type.
+func scanOperation(row scanner) (domain.Operation, error) {
+	var (
+		op           domain.Operation
+		kind         string
+		optionSet    string
+		startedNanos int64
+		endedNanos   sql.NullInt64
+	)
+	if err := row.Scan(&op.ID, &op.HostRef, &kind, &op.Target, &optionSet, &op.Result,
+		&op.BytesReclaimed, &startedNanos, &endedNanos); err != nil {
+		return domain.Operation{}, err
+	}
+	op.Kind = domain.OperationKind(kind)
+	op.StartedAt = time.Unix(0, startedNanos).UTC()
+	if endedNanos.Valid {
+		op.EndedAt = time.Unix(0, endedNanos.Int64).UTC()
+	}
+	if err := json.Unmarshal([]byte(optionSet), &op.OptionSet); err != nil {
+		return domain.Operation{}, fmt.Errorf("decoding operation option set: %w", err)
+	}
+	return op, nil
 }
 
 // SavePruneImpact persists the per-category impact that was confirmed for an

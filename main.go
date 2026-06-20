@@ -21,6 +21,7 @@ import (
 	"github.com/drydock/drydock/internal/core/engine"
 	"github.com/drydock/drydock/internal/core/history"
 	"github.com/drydock/drydock/internal/core/hosts"
+	"github.com/drydock/drydock/internal/core/journal"
 	"github.com/drydock/drydock/internal/core/operations"
 	"github.com/drydock/drydock/internal/platform/config"
 	"github.com/drydock/drydock/internal/platform/logging"
@@ -106,6 +107,7 @@ func run() error {
 	defer func() { _ = registry.Close(context.Background()) }()
 
 	ops := operations.New(registry, store, auditLog, nil)
+	jrnl := journal.New(store)
 
 	// Roll off resource history beyond the configured retention window. The
 	// goroutine is owned by retentionCtx and stops when run() returns.
@@ -119,7 +121,7 @@ func run() error {
 		return fmt.Errorf("loading embedded frontend: %w", err)
 	}
 
-	return app.Run(assets, log, registry, ops, store, version)
+	return app.Run(assets, log, registry, ops, jrnl, store, version)
 }
 
 // buildLogger constructs the operational logger. In dev (text format) it writes

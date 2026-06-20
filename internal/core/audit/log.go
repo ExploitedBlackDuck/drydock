@@ -101,7 +101,15 @@ func (l *Log) Verify(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("loading audit entries: %w", err)
 	}
+	return VerifyEntries(entries)
+}
 
+// VerifyEntries validates a chain held in memory: contiguous 1-based sequence,
+// intact back-links, and a content hash matching each entry. It is pure, so an
+// exported chain can be verified on its own (PROJECT-BOOK §7.11.8) without a
+// store. It returns the number of entries verified, or an error wrapping
+// ErrChainBroken at the first inconsistency.
+func VerifyEntries(entries []domain.AuditEntry) (int, error) {
 	prevHash := ""
 	for i, entry := range entries {
 		expectedSeq := int64(i + 1)
