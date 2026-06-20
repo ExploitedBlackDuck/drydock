@@ -123,5 +123,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Gates met: store query tests (host/kind/time/limit/round-trip), audit
     tamper-detection and export round-trip tests, and an independent
     exported-chain verification.
+- **P9 — packaging, signing & release.**
+  - Release workflow (`.github/workflows/release.yml`) triggered by a signed
+    `v*` tag: a signed + notarized + stapled macOS zip, a Linux `.deb` (nfpm) and
+    AppImage (linuxdeploy), a reproducible-build attestation, and a published
+    `SHA256SUMS` over every artifact — all from pinned Go/Node/Wails/nfpm/
+    linuxdeploy toolchains (ADR-0012, §9).
+  - macOS hardened-runtime entitlements kept minimal (JIT for WKWebView + the
+    network client), with `scripts/package-macos.sh` doing codesign → notarytool
+    → staple; forks without an Apple identity still build an unsigned artifact.
+  - Linux packaging metadata: `nfpm.yaml` (`.deb` with desktop entry + icon +
+    dependencies) and a freedesktop `drydock.desktop`.
+  - `scripts/reproducible-build.sh` builds the binary twice and compares it
+    (normalising away the macOS signature), exposed as `task build:reproducible`;
+    `scripts/checksums.sh` emits verifiable `SHA256SUMS`.
+  - `docs/RELEASING.md` documents the tag-driven process, the signing secrets,
+    download verification, and the pinned toolchain.
 
 [Unreleased]: https://github.com/drydock/drydock/commits/main
