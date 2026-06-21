@@ -50,6 +50,7 @@ func mapContainer(hostRef string, c container.Summary) domain.Container {
 		State:              c.State,
 		Status:             c.Status,
 		Ports:              ports,
+		NetworkMode:        c.HostConfig.NetworkMode,
 		ComposeProject:     c.Labels[composeProjectLabel],
 		ComposeService:     c.Labels[composeServiceLabel],
 		ComposeConfigHash:  c.Labels[composeConfigHashLabel],

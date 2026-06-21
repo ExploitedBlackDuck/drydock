@@ -54,6 +54,10 @@ export function GetResourceHistory(arg1, arg2, arg3) {
   return window['go']['app']['App']['GetResourceHistory'](arg1, arg2, arg3);
 }
 
+export function HostExposure(arg1) {
+  return window['go']['app']['App']['HostExposure'](arg1);
+}
+
 export function KillContainer(arg1, arg2, arg3) {
   return window['go']['app']['App']['KillContainer'](arg1, arg2, arg3);
 }

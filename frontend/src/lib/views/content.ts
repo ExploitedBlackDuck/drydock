@@ -49,6 +49,14 @@ export const VIEW_CONTENT: Record<ViewId, ViewContent> = {
     emptyTitle: 'No networks',
     emptyMessage: 'Only the default networks exist on this host.',
   },
+  [ViewId.Exposure]: {
+    description:
+      'What each container publishes and how far it reaches — loopback vs all-interfaces.',
+    icon: 'exposure',
+    emptyTitle: 'Nothing published',
+    emptyMessage:
+      'No container on this host publishes a port, and none use host networking.',
+  },
   [ViewId.Disk]: {
     description:
       'system df made legible — reclaimable space by category, build cache first-class.',

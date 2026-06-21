@@ -25,13 +25,16 @@ type Port struct {
 // Container is a container as listed by the engine (PROJECT-BOOK §7.1). HostRef
 // is stamped by the adapter for the host it was read from.
 type Container struct {
-	ID             string
-	HostRef        string
-	Name           string
-	Image          string
-	State          string
-	Status         string
-	Ports          []Port
+	ID      string
+	HostRef string
+	Name    string
+	Image   string
+	State   string
+	Status  string
+	Ports   []Port
+	// NetworkMode is the container's network mode (e.g. "host", "bridge"), used
+	// to surface host-network containers in the exposure map (ADR-0017).
+	NetworkMode    string
 	ComposeProject string
 	ComposeService string
 	// Compose plan inputs (ADR-0016): the per-service config hash and where the

@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Exposure map (Phase 2, P11, ADR-0017).** A new per-host **Exposure** view
+  answers "what have I exposed?": `internal/core/expose.Compute` classifies each
+  published port by reach — **loopback** (`127.0.0.0/8`/`::1`), **private/LAN**,
+  or **all-interfaces** (`0.0.0.0`/`::`/empty host IP) — and **flags**
+  all-interfaces bindings on a host reached over a non-loopback transport
+  (plausibly internet-reachable). A `network_mode: host` container is listed
+  explicitly as "exposure not derivable from port bindings", never as exposing
+  nothing. Read-only insight — Drydock never edits a firewall or rebinds a port —
+  and the UI states its daemon-layer scope. Pure and table-tested.
 - **Compose plan — `up` is preview-and-confirm (Phase 2, P10, ADR-0016).** `up`
   stops being a black box: Drydock previews what it would do before applying.
   - `internal/core/compose.Plan` classifies each service create/recreate/start/

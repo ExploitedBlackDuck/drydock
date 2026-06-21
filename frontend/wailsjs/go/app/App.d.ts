@@ -30,6 +30,8 @@ export function GetPruneImpact(arg1:string):Promise<domain.PruneImpact>;
 
 export function GetResourceHistory(arg1:string,arg2:string,arg3:number):Promise<Array<domain.ResourceSample>>;
 
+export function HostExposure(arg1:string):Promise<domain.ExposureMap>;
+
 export function KillContainer(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
 export function ListContainers(arg1:string):Promise<Array<domain.Container>>;

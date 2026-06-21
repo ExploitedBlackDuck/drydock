@@ -202,6 +202,7 @@ export namespace domain {
 	    State: string;
 	    Status: string;
 	    Ports: Port[];
+	    NetworkMode: string;
 	    ComposeProject: string;
 	    ComposeService: string;
 	    ComposeConfigHash: string;
@@ -223,6 +224,7 @@ export namespace domain {
 	        this.State = source["State"];
 	        this.Status = source["Status"];
 	        this.Ports = this.convertValues(source["Ports"], Port);
+	        this.NetworkMode = source["NetworkMode"];
 	        this.ComposeProject = source["ComposeProject"];
 	        this.ComposeService = source["ComposeService"];
 	        this.ComposeConfigHash = source["ComposeConfigHash"];
@@ -249,6 +251,85 @@ export namespace domain {
 		    return a;
 		}
 	}
+	export class HostNetworkRef {
+	    ContainerID: string;
+	    ContainerName: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HostNetworkRef(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ContainerID = source["ContainerID"];
+	        this.ContainerName = source["ContainerName"];
+	    }
+	}
+	export class PortBinding {
+	    HostRef: string;
+	    ContainerID: string;
+	    ContainerName: string;
+	    HostIP: string;
+	    HostPort: number;
+	    ContainerPort: number;
+	    Protocol: string;
+	    Reach: string;
+	    Flagged: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PortBinding(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.HostRef = source["HostRef"];
+	        this.ContainerID = source["ContainerID"];
+	        this.ContainerName = source["ContainerName"];
+	        this.HostIP = source["HostIP"];
+	        this.HostPort = source["HostPort"];
+	        this.ContainerPort = source["ContainerPort"];
+	        this.Protocol = source["Protocol"];
+	        this.Reach = source["Reach"];
+	        this.Flagged = source["Flagged"];
+	    }
+	}
+	export class ExposureMap {
+	    HostRef: string;
+	    RemoteTransport: boolean;
+	    Bindings: PortBinding[];
+	    HostNetwork: HostNetworkRef[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ExposureMap(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.HostRef = source["HostRef"];
+	        this.RemoteTransport = source["RemoteTransport"];
+	        this.Bindings = this.convertValues(source["Bindings"], PortBinding);
+	        this.HostNetwork = this.convertValues(source["HostNetwork"], HostNetworkRef);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class Image {
 	    ID: string;
 	    HostRef: string;
@@ -362,6 +443,7 @@ export namespace domain {
 		    return a;
 		}
 	}
+	
 	
 	export class PruneCategory {
 	    Kind: string;

@@ -12,6 +12,7 @@
   import ImagesView from './ImagesView.svelte';
   import VolumesView from './VolumesView.svelte';
   import NetworksView from './NetworksView.svelte';
+  import ExposureView from './ExposureView.svelte';
   import DiskView from './DiskView.svelte';
   import HistoryView from './HistoryView.svelte';
   import AuditView from './AuditView.svelte';
@@ -62,6 +63,8 @@
       <VolumesView hostId={host.id} observeMode={host.observeMode} />
     {:else if connected && $activeView === ViewId.Networks}
       <NetworksView hostId={host.id} />
+    {:else if connected && $activeView === ViewId.Exposure}
+      <ExposureView hostId={host.id} />
     {:else if connected && $activeView === ViewId.Disk}
       <DiskView hostId={host.id} observeMode={host.observeMode} />
     {:else if connected && $activeView === ViewId.History}
