@@ -158,6 +158,27 @@ func TestAddDerivesTrustAndPersists(t *testing.T) {
 	assert.False(t, list[0].Connected)
 }
 
+func TestReconnectSwapsEngine(t *testing.T) {
+	ctx := context.Background()
+	reg, conn, _ := newRegistry(t)
+
+	h, err := reg.Add(ctx, domain.Host{Name: "h", Transport: domain.TransportSSH, Endpoint: "ssh://user@host"})
+	require.NoError(t, err)
+	_, err = reg.Connect(ctx, h.ID)
+	require.NoError(t, err)
+	first := conn.engines[len(conn.engines)-1]
+
+	_, err = reg.Reconnect(ctx, h.ID)
+	require.NoError(t, err)
+	assert.True(t, first.closed, "the prior engine is closed on reconnect")
+	require.Len(t, conn.engines, 2, "a fresh engine was opened")
+
+	// The registry now serves the new engine, not the stale one.
+	eng, err := reg.Engine(h.ID)
+	require.NoError(t, err)
+	assert.NotSame(t, first, eng)
+}
+
 func TestConnectDisconnectLifecycle(t *testing.T) {
 	ctx := context.Background()
 	reg, conn, aud := newRegistry(t)

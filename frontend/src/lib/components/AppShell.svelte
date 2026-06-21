@@ -5,6 +5,7 @@
   import TopBar from './TopBar.svelte';
   import AddHostWizard from './AddHostWizard.svelte';
   import RestartLoopBanner from './RestartLoopBanner.svelte';
+  import ResyncWatcher from './ResyncWatcher.svelte';
   import PrimaryView from '../views/PrimaryView.svelte';
   import WelcomeScreen from '../views/WelcomeScreen.svelte';
   import { HostStatus } from '../types/domain';
@@ -22,6 +23,9 @@
     <TopBar {version} />
     {#if $activeHost && $activeHost.status === HostStatus.Connected}
       <RestartLoopBanner hostId={$activeHost.id} />
+      {#key $activeHost.id}
+        <ResyncWatcher hostId={$activeHost.id} />
+      {/key}
     {/if}
     <main>
       {#if $activeHost}

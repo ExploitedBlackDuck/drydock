@@ -43,5 +43,10 @@ and a resync path per live view.
 `internal/core/stream.LineBuffer` coalesces the log stream and a ticker drains it,
 emitting a "fell behind" marker on drops — never an unbounded buffer (unit
 tested). Cancellation (3) and unsubscribe-on-unmount (1) hold for the existing
-per-stream stop bindings. Opaque correlation-id unification and reconnect-driven
-resync (4) remain to be implemented and are tracked as follow-up work.
+per-stream stop bindings. Reconnect-driven resync (4) is implemented: the app's
+event supervisor, on a dropped stream, emits `resync:<hostID>` and retries the
+connection with bounded backoff via `registry.Reconnect` (unit tested); the
+frontend `ResyncWatcher` refetches host status and object lists on the signal
+rather than resuming stale data. The opaque correlation-id registry unification
+(replacing the per-resource keys with a single `Cancel(id)`) remains a tracked
+follow-up — behaviour is correct today, the refactor is cosmetic.

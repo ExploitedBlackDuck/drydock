@@ -174,6 +174,18 @@ func (r *Registry) Connect(ctx context.Context, id string) (domain.Host, error) 
 	return host, nil
 }
 
+// Reconnect re-establishes a host's engine after a dropped connection: it closes
+// any existing (dead) engine and opens a fresh one (ADR-0021). The event
+// supervisor calls it when a live stream drops, so the UI can resync against a
+// live connection rather than resume a stale one. A failed reconnect leaves the
+// host disconnected (no engine), which the next attempt retries.
+func (r *Registry) Reconnect(ctx context.Context, id string) (domain.Host, error) {
+	if err := r.Disconnect(ctx, id); err != nil {
+		return domain.Host{}, fmt.Errorf("closing prior connection to host %q: %w", id, err)
+	}
+	return r.Connect(ctx, id)
+}
+
 // Disconnect closes the engine connection (and its SSH tunnel) and audits it.
 // Disconnecting an unconnected host is a no-op.
 func (r *Registry) Disconnect(ctx context.Context, id string) error {

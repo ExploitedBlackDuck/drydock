@@ -58,3 +58,18 @@ export const images = createResource<Image>(listImages);
 export const volumes = createResource<Volume>(listVolumes);
 export const networks = createResource<Network>(listNetworks);
 export const stacks = createResource<Stack>(listStacks);
+
+/**
+ * Refetches every object collection for a host — used on a resync (ADR-0021) so
+ * the views show authoritative state after a live stream dropped, rather than
+ * keeping whatever was last streamed.
+ */
+export function reloadObjects(hostId: string): Promise<void> {
+  return Promise.all([
+    containers.load(hostId),
+    images.load(hostId),
+    volumes.load(hostId),
+    networks.load(hostId),
+    stacks.load(hostId),
+  ]).then(() => undefined);
+}

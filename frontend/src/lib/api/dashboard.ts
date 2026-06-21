@@ -41,3 +41,20 @@ export function getResourceHistory(
 ): Promise<ResourceSample[]> {
   return GetResourceHistory(hostId, containerId, limit);
 }
+
+/** A resync signal: the live stream dropped or was re-established (ADR-0021). */
+export interface ResyncEvent {
+  hostId: string;
+  reason: string;
+}
+
+/**
+ * Subscribes to resync signals for a host. On a resync the UI refetches
+ * authoritative state rather than trusting the now-stale live data.
+ */
+export function onResync(
+  hostId: string,
+  handler: (event: ResyncEvent) => void,
+): () => void {
+  return EventsOn(`resync:${hostId}`, (event: ResyncEvent) => handler(event));
+}
