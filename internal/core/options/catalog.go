@@ -3,6 +3,7 @@ package options
 import (
 	"embed"
 	"fmt"
+	"sort"
 
 	"github.com/BurntSushi/toml"
 )
@@ -114,6 +115,17 @@ func DefaultCatalog() (*Catalog, error) {
 func (c *Catalog) Option(name string) (Option, bool) {
 	opt, ok := c.byName[name]
 	return opt, ok
+}
+
+// Options returns every catalogued option, sorted by name — the source the
+// run/create builder renders from (ADR-0011).
+func (c *Catalog) Options() []Option {
+	out := make([]Option, 0, len(c.byName))
+	for _, opt := range c.byName {
+		out = append(out, opt)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out
 }
 
 // IsSecret reports whether the named option carries secret material.

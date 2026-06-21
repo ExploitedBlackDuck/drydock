@@ -81,6 +81,10 @@ type Engine interface {
 	// ListNetworks lists networks known to the engine.
 	ListNetworks(ctx context.Context) ([]domain.Network, error)
 
+	// RunContainer creates and starts a container from a resolved RunSpec
+	// assembled by the option builder (argv/typed params, never a shell —
+	// ADR-0004/0011). Returns the new container's id.
+	RunContainer(ctx context.Context, spec domain.RunSpec) (string, error)
 	// StartContainer starts a stopped container.
 	StartContainer(ctx context.Context, id string) error
 	// StopContainer gracefully stops a running container.

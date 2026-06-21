@@ -24,6 +24,7 @@ const (
 	ActionContainerKill    Action = "container.kill"
 	ActionContainerRemove  Action = "container.remove"
 	ActionContainerExec    Action = "container.exec"
+	ActionContainerRun     Action = "container.run"
 
 	ActionImagePrune      Action = "image.prune"
 	ActionContainerPrune  Action = "container.prune"

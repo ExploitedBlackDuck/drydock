@@ -102,6 +102,10 @@ export function OperationHistory(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['OperationHistory'](arg1, arg2, arg3, arg4);
 }
 
+export function OptionCatalog() {
+  return window['go']['app']['App']['OptionCatalog']();
+}
+
 export function PreviewVolumeSnapshot(arg1, arg2) {
   return window['go']['app']['App']['PreviewVolumeSnapshot'](arg1, arg2);
 }
@@ -140,6 +144,10 @@ export function RestartContainer(arg1, arg2) {
 
 export function RestoreVolume(arg1, arg2, arg3) {
   return window['go']['app']['App']['RestoreVolume'](arg1, arg2, arg3);
+}
+
+export function RunContainer(arg1, arg2) {
+  return window['go']['app']['App']['RunContainer'](arg1, arg2);
 }
 
 export function SendExecInput(arg1, arg2) {

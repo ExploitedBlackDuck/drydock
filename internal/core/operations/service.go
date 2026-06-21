@@ -80,6 +80,39 @@ func (s *Service) Start(ctx context.Context, hostID, containerID string) error {
 		func(ctx context.Context, e engine.Engine) error { return e.StartContainer(ctx, containerID) })
 }
 
+// RunContainer creates and starts a container from a resolved RunSpec assembled
+// by the option builder (ADR-0011). It passes the observe-mode guard, is
+// recorded, and is audited — with secret-flagged values (env) redacted on
+// capture (ADR-0023). Returns the new container's id.
+func (s *Service) RunContainer(ctx context.Context, hostID string, spec domain.RunSpec, ack bool) (string, error) {
+	optionSet := map[string]any{"image": spec.Image, "name": spec.Name}
+	if len(spec.Env) > 0 {
+		optionSet["env"] = spec.Env // redacted on capture
+	}
+	if len(spec.Publish) > 0 {
+		optionSet["publish"] = spec.Publish
+	}
+	if len(spec.Volumes) > 0 {
+		optionSet["volume"] = spec.Volumes
+	}
+	if spec.Restart != "" {
+		optionSet["restart"] = spec.Restart
+	}
+	if spec.NetworkHost {
+		optionSet["network-host"] = true
+	}
+
+	var id string
+	started := s.now()
+	err := s.mutator.Mutate(ctx, hostID, func(ctx context.Context, e engine.Engine) error {
+		newID, runErr := e.RunContainer(ctx, spec)
+		id = newID
+		return runErr
+	})
+	s.record(ctx, hostID, domain.OpContainerRun, spec.Image, optionSet, started, s.now(), err)
+	return id, err
+}
+
 // Stop gracefully stops a container.
 func (s *Service) Stop(ctx context.Context, hostID, containerID string) error {
 	return s.run(ctx, hostID, domain.OpContainerStop, containerID, nil, true,
@@ -382,6 +415,8 @@ func auditAction(kind domain.OperationKind) domain.Action {
 		return domain.ActionContainerRemove
 	case domain.OpContainerExec:
 		return domain.ActionContainerExec
+	case domain.OpContainerRun:
+		return domain.ActionContainerRun
 	case domain.OpImagePrune:
 		return domain.ActionImagePrune
 	case domain.OpContainerPrune:

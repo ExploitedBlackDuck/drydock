@@ -45,6 +45,22 @@ type Container struct {
 	Created            time.Time
 }
 
+// RunSpec is a resolved container-creation request assembled by the option
+// builder (ADR-0011, §7.5): typed and validated against the catalog, never a
+// shell string. Env values are secret material — redacted in capture (ADR-0023).
+type RunSpec struct {
+	Image       string
+	Name        string
+	Command     []string
+	Env         []string // NAME=value
+	Publish     []string // "[ip:]hostPort:containerPort[/proto]"
+	Volumes     []string // "source:target[:ro]"
+	Restart     string   // "", "no", "on-failure", "always", "unless-stopped"
+	NetworkHost bool
+	User        string
+	WorkingDir  string
+}
+
 // Image is an image summary (PROJECT-BOOK §7.1).
 type Image struct {
 	ID      string

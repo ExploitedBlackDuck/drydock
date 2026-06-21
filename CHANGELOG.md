@@ -8,6 +8,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Run a container — the catalog-driven option builder (ADR-0011).** Containers
+  gains a **Run container…** dialog that assembles a container from catalogued
+  options (env, publish, volumes, restart, network mode, user) — no free-text
+  flags; the fields, help, and risk come from the catalog — with a live
+  **resolved-operation** summary, then creates and starts it. `domain.RunSpec` +
+  `engine.RunContainer` (typed params, never a shell) + `operations.RunContainer`
+  (observe-guarded, audited, with **env redacted on capture**, ADR-0023). New
+  `OptionCatalog` and `RunContainer` bindings.
+- **Remove a host.** The host switcher gains a remove control (every host except
+  the implicit local engine); removal cascades the host's operations, samples,
+  and timeline in one transaction while preserving the independent audit log.
 - **Volume snapshots (Phase 2, P14, ADR-0020).** The Volumes view offers a
   **Snapshot…** action: it previews the destination, estimated size, and
   duration, then captures the volume to a `tar` file via a throwaway helper

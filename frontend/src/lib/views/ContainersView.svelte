@@ -2,6 +2,7 @@
   import ResourceView from './ResourceView.svelte';
   import StateBadge from '../components/StateBadge.svelte';
   import ContainerDetail from '../components/ContainerDetail.svelte';
+  import RunContainerDialog from '../components/RunContainerDialog.svelte';
   import { containers } from '../stores/objects';
   import type { Container } from '../api/engine';
   import { shortId } from '../util/format';
@@ -18,6 +19,12 @@
   let selected: Container | null = null;
   let busy = '';
   let actionError: string | null = null;
+  let runOpen = false;
+
+  async function onRan() {
+    runOpen = false;
+    await containers.load(hostId);
+  }
 
   $: running = (c: Container) => c.State === 'running';
 
@@ -51,6 +58,15 @@
 
 <div class="containers" class:split={selected !== null}>
   <div class="list">
+    <div class="toolbar">
+      {#if !observeMode}
+        <button class="run" on:click={() => (runOpen = true)}
+          >Run container…</button
+        >
+      {:else}
+        <span class="observe-note">Host is observe-only</span>
+      {/if}
+    </div>
     <ResourceView
       {hostId}
       store={containers}
@@ -139,7 +155,33 @@
   {/if}
 </div>
 
+{#if runOpen}
+  <RunContainerDialog
+    {hostId}
+    on:ran={onRan}
+    on:cancel={() => (runOpen = false)}
+  />
+{/if}
+
 <style>
+  .toolbar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    padding: var(--space-3) var(--space-5);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .run {
+    padding: 5px 12px;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    background: var(--color-accent-soft);
+    color: var(--color-text);
+    font-size: var(--text-sm);
+  }
+  .run:hover {
+    background: var(--color-surface-hover);
+  }
   .containers {
     display: flex;
     flex-direction: column;

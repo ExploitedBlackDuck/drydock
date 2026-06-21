@@ -22,6 +22,12 @@ type fakeEngine struct {
 	composeUp                 bool
 	composeDownVolumes        *bool
 	snapshotted, restored     bool
+	ran                       bool
+}
+
+func (e *fakeEngine) RunContainer(context.Context, domain.RunSpec) (string, error) {
+	e.ran = true
+	return "new-container-id", nil
 }
 
 func (e *fakeEngine) Info(context.Context) (domain.EngineInfo, error) {
@@ -361,6 +367,35 @@ func TestRemoveVolumeNeedsNoSnapshot(t *testing.T) {
 	require.NoError(t, svc.RemoveVolume(context.Background(), "h1", "db", true))
 	assert.True(t, m.eng.removed)
 	assert.False(t, m.eng.snapshotted, "deletion does not require or trigger a snapshot")
+}
+
+func TestRunContainerRedactsEnvAndAudits(t *testing.T) {
+	svc, m, store, aud := newService(false)
+
+	id, err := svc.RunContainer(context.Background(), "h1", domain.RunSpec{
+		Image: "nginx:1.27", Name: "web", Env: []string{"DB_PASSWORD=hunter2"},
+		Publish: []string{"8080:80"},
+	}, true)
+	require.NoError(t, err)
+	assert.Equal(t, "new-container-id", id)
+	assert.True(t, m.eng.ran)
+
+	require.Len(t, store.ops, 1)
+	op := store.ops[0]
+	assert.Equal(t, domain.OpContainerRun, op.Kind)
+	assert.Equal(t, options.RedactedValue, op.OptionSet["env"], "env is redacted on capture")
+	assert.Equal(t, "nginx:1.27", op.OptionSet["image"])
+	assert.NotContains(t, fmt.Sprint(op.OptionSet), "hunter2")
+
+	require.Len(t, aud.records, 1)
+	assert.Equal(t, domain.ActionContainerRun, aud.records[0].Action)
+}
+
+func TestRunContainerBlockedOnObserveMode(t *testing.T) {
+	svc, m, _, _ := newService(true)
+	_, err := svc.RunContainer(context.Background(), "h1", domain.RunSpec{Image: "nginx"}, true)
+	assert.ErrorIs(t, err, domain.ErrObserveMode)
+	assert.False(t, m.eng.ran, "creating a container is blocked on an observe-mode host")
 }
 
 func TestObserveModeRejectsAndIsRecorded(t *testing.T) {

@@ -78,6 +78,32 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class OptionDTO {
+	    name: string;
+	    type: string;
+	    category: string;
+	    summary: string;
+	    description: string;
+	    risk: string;
+	    affectsData: boolean;
+	    secret: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new OptionDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.type = source["type"];
+	        this.category = source["category"];
+	        this.summary = source["summary"];
+	        this.description = source["description"];
+	        this.risk = source["risk"];
+	        this.affectsData = source["affectsData"];
+	        this.secret = source["secret"];
+	    }
+	}
 
 }
 
@@ -643,6 +669,36 @@ export namespace domain {
 		    }
 		    return a;
 		}
+	}
+	export class RunSpec {
+	    Image: string;
+	    Name: string;
+	    Command: string[];
+	    Env: string[];
+	    Publish: string[];
+	    Volumes: string[];
+	    Restart: string;
+	    NetworkHost: boolean;
+	    User: string;
+	    WorkingDir: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RunSpec(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Image = source["Image"];
+	        this.Name = source["Name"];
+	        this.Command = source["Command"];
+	        this.Env = source["Env"];
+	        this.Publish = source["Publish"];
+	        this.Volumes = source["Volumes"];
+	        this.Restart = source["Restart"];
+	        this.NetworkHost = source["NetworkHost"];
+	        this.User = source["User"];
+	        this.WorkingDir = source["WorkingDir"];
+	    }
 	}
 	
 	export class StackService {

@@ -13,6 +13,7 @@ const (
 	OpContainerKill    OperationKind = "container.kill"
 	OpContainerRemove  OperationKind = "container.remove"
 	OpContainerExec    OperationKind = "container.exec"
+	OpContainerRun     OperationKind = "container.run"
 
 	OpImagePrune      OperationKind = "image.prune"
 	OpContainerPrune  OperationKind = "container.prune"
