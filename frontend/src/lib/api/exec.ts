@@ -2,6 +2,7 @@
 // Terminal bytes cross the bridge base64-encoded so raw control sequences survive
 // intact; the helpers here convert between xterm's strings and that wire form.
 import {
+  CloseExecInput,
   ResizeExec,
   SendExecInput,
   StartExec,
@@ -30,6 +31,11 @@ export function resizeExec(
   rows: number,
 ): Promise<void> {
   return ResizeExec(sessionId, cols, rows);
+}
+
+/** Half-closes stdin (sends EOF) without ending the session (ADR-0022). */
+export function closeExecInput(sessionId: string): Promise<void> {
+  return CloseExecInput(sessionId);
 }
 
 /** Ends the session and releases its connection. */

@@ -53,6 +53,9 @@ func TestExecInteractiveReadWriteResize(t *testing.T) {
 	// Resizing the live TTY succeeds.
 	require.NoError(t, stream.Resize(ctx, 100, 40))
 
+	// Half-closing stdin sends EOF to the command without erroring the call.
+	require.NoError(t, stream.CloseStdin())
+
 	require.NoError(t, stream.Close())
 
 	after := stableGoroutines()

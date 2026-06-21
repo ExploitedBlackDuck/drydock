@@ -10,6 +10,8 @@ export function AuditTrail():Promise<journal.AuditStatus>;
 
 export function BackupDatabase():Promise<string>;
 
+export function CloseExecInput(arg1:string):Promise<void>;
+
 export function ComposeDown(arg1:string,arg2:string,arg3:boolean,arg4:boolean):Promise<void>;
 
 export function ComposeUp(arg1:string,arg2:string):Promise<void>;

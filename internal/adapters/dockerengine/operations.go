@@ -163,6 +163,15 @@ func (e *execStream) Read(p []byte) (int, error)  { return e.resp.Reader.Read(p)
 func (e *execStream) Write(p []byte) (int, error) { return e.resp.Conn.Write(p) }
 func (e *execStream) Close() error                { e.resp.Close(); return nil }
 
+// CloseStdin half-closes the input side of the hijacked connection, sending EOF
+// to the command while output keeps streaming back (ADR-0022).
+func (e *execStream) CloseStdin() error {
+	if err := e.resp.CloseWrite(); err != nil {
+		return fmt.Errorf("half-closing exec %q stdin: %w", e.execID, err)
+	}
+	return nil
+}
+
 // Resize adjusts the remote pseudo-TTY so full-screen programs (vim, top) render
 // to the terminal pane's real dimensions.
 func (e *execStream) Resize(ctx context.Context, cols, rows uint16) error {

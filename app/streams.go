@@ -3,14 +3,25 @@ package app
 import (
 	"bufio"
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/drydock/drydock/internal/core/domain"
 	"github.com/drydock/drydock/internal/core/engine"
+	"github.com/drydock/drydock/internal/core/stream"
 )
 
 // maxLogLine bounds a single scanned log line so a pathological stream cannot
 // exhaust memory.
 const maxLogLine = 1024 * 1024
+
+// Log-stream backpressure (ADR-0021): the reader fills a bounded buffer that a
+// ticker drains to the event bus, so a flood coalesces and drops with a marker
+// rather than growing without limit.
+const (
+	logBufferLines   = 1000
+	logFlushInterval = 100 * time.Millisecond
+)
 
 // SampleStore persists and reads rolling resource-history samples
 // (PROJECT-BOOK §7.6). It is consumer-defined here and satisfied by the SQLite
@@ -49,18 +60,54 @@ func (a *App) StreamContainerLogs(hostID, containerID string) error {
 		return err
 	}
 
+	// The reader fills a bounded buffer; a separate drainer emits to the event bus
+	// on a ticker, coalescing bursts and marking drops (ADR-0021). Both goroutines
+	// stop on ctx cancellation (StopContainerLogs / quit) — no stream is leaked.
+	buf := stream.NewLineBuffer(logBufferLines)
+	done := make(chan struct{})
+
 	go func() {
 		defer func() { _ = rc.Close() }()
-		defer a.clearStream(key)
+		defer close(done)
 		scanner := bufio.NewScanner(rc)
 		scanner.Buffer(make([]byte, 0, 64*1024), maxLogLine)
 		for scanner.Scan() {
 			if ctx.Err() != nil {
 				return
 			}
-			// Emit on the long-lived app context, not the cancellable stream ctx:
-			// the event bus must stay usable for the whole app lifetime.
-			a.runtime.EmitEvent(a.baseCtx(), key, scanner.Text()) //nolint:contextcheck // app-lifetime event bus
+			buf.Push(scanner.Text())
+		}
+	}()
+
+	go func() {
+		defer a.clearStream(key)
+		ticker := time.NewTicker(logFlushInterval)
+		defer ticker.Stop()
+		// flush drains the buffer to the log event, prefixing a "fell behind"
+		// marker when lines were dropped. It emits on the long-lived app context,
+		// not the cancellable stream ctx, so the bus stays usable for the app life.
+		//nolint:contextcheck // emits on the app-lifetime event bus, not the stream ctx
+		flush := func() {
+			lines, dropped := buf.Drain()
+			if dropped > 0 {
+				a.runtime.EmitEvent(a.baseCtx(), key,
+					fmt.Sprintf("⟪ %d line(s) dropped — stream fell behind ⟫", dropped))
+			}
+			for _, line := range lines {
+				a.runtime.EmitEvent(a.baseCtx(), key, line)
+			}
+		}
+		for {
+			select {
+			case <-ctx.Done():
+				flush()
+				return
+			case <-done:
+				flush()
+				return
+			case <-ticker.C:
+				flush()
+			}
 		}
 	}()
 	return nil

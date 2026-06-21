@@ -103,6 +103,17 @@ func (a *App) SendExecInput(sessionID, dataB64 string) error {
 	return nil
 }
 
+// CloseExecInput half-closes a session's stdin (sends EOF) without ending the
+// session, so a command reading stdin to completion finishes while its output
+// continues to stream (ADR-0022).
+func (a *App) CloseExecInput(sessionID string) error {
+	session, ok := a.getExec(sessionID)
+	if !ok {
+		return ErrNoExecSession
+	}
+	return session.stream.CloseStdin()
+}
+
 // ResizeExec sets the session's remote TTY to cols×rows.
 func (a *App) ResizeExec(sessionID string, cols, rows int) error {
 	session, ok := a.getExec(sessionID)

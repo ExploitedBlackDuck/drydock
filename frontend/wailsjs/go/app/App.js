@@ -14,6 +14,10 @@ export function BackupDatabase() {
   return window['go']['app']['App']['BackupDatabase']();
 }
 
+export function CloseExecInput(arg1) {
+  return window['go']['app']['App']['CloseExecInput'](arg1);
+}
+
 export function ComposeDown(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['ComposeDown'](arg1, arg2, arg3, arg4);
 }

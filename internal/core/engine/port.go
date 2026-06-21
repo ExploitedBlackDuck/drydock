@@ -49,6 +49,11 @@ type ExecStream interface {
 	io.ReadWriteCloser
 	// Resize sets the remote pseudo-TTY to cols×rows character cells.
 	Resize(ctx context.Context, cols, rows uint16) error
+	// CloseStdin half-closes the input side — sends EOF to the command without
+	// ending the session — so a command that reads stdin to completion (e.g.
+	// `cat`, a piped script) finishes while its output still streams back
+	// (ADR-0022). Closing the whole stream still ends the session.
+	CloseStdin() error
 }
 
 // MinAPIVersion is the lowest Docker Engine API version Drydock fully supports.

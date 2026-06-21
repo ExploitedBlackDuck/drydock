@@ -8,6 +8,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Log-stream backpressure (ADR-0021).** A bounded, coalescing buffer
+  (`internal/core/stream.LineBuffer`) sits between the engine log reader and the
+  UI event bus: a flood is rate-limited by a ticker and, when lines overflow the
+  cap, the oldest are dropped and a `⟪ N line(s) dropped — stream fell behind ⟫`
+  marker is emitted, so a busy log never grows an unbounded buffer.
+- **Exec stdin half-close (ADR-0022).** `ExecStream.CloseStdin` and the
+  `CloseExecInput` binding send EOF to a running command without ending the
+  session, so a command that reads stdin to completion finishes while its output
+  keeps streaming. (Reconnect-driven resync, opaque correlation-id unification,
+  and non-interactive stdout/stderr separation remain tracked follow-ups.)
+
 - **Typed option catalog with secret-capture redaction (ADR-0023).** An embedded
   TOML catalog (`internal/core/options/catalogs/docker@1.51.toml`) defines each
   `run`/`create`/`exec` option with a type, risk, and a `secret` flag, and a
