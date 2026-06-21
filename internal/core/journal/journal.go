@@ -27,14 +27,22 @@ type Store interface {
 	AuditEntries(ctx context.Context) ([]domain.AuditEntry, error)
 }
 
-// Service answers history and audit queries and produces exports.
-type Service struct {
-	store Store
+// Verifier verifies the audit chain's integrity (keyed MAC + truncation
+// high-water mark), satisfied by *audit.Log. The journal owns the read model but
+// delegates the cryptographic check to the audit package that holds the key.
+type Verifier interface {
+	Verify(ctx context.Context) (audit.VerifyResult, error)
 }
 
-// New constructs the journal service over a read store.
-func New(store Store) *Service {
-	return &Service{store: store}
+// Service answers history and audit queries and produces exports.
+type Service struct {
+	store    Store
+	verifier Verifier
+}
+
+// New constructs the journal service over a read store and the audit verifier.
+func New(store Store, verifier Verifier) *Service {
+	return &Service{store: store, verifier: verifier}
 }
 
 // Filter is the history view's query (PROJECT-BOOK §7.11.8): by host, by kind,
@@ -71,38 +79,40 @@ func (s *Service) Operations(ctx context.Context, f Filter) ([]domain.Operation,
 }
 
 // AuditStatus is the audit view's model: the entries plus the chain-verification
-// result that drives the green/red indicator (PROJECT-BOOK §7.11.8).
+// result that drives the indicator (PROJECT-BOOK §7.11.8). State distinguishes
+// intact / in-place-tampered / truncated / key-unavailable (ADR-0025).
 type AuditStatus struct {
 	Entries []domain.AuditEntry
-	// Verified is true when the whole chain validates.
+	// State is the verification outcome (see audit.VerifyState).
+	State string
+	// Verified is true only when State is intact — a convenience for the UI.
 	Verified bool
-	// VerifiedCount is the number of entries that validated before any break
-	// (equal to len(Entries) when Verified).
+	// VerifiedCount is the number of entries confirmed before any break.
 	VerifiedCount int
-	// Error explains the break when Verified is false (empty otherwise).
+	// Error explains a tampered/truncated chain (empty when intact or
+	// key-unavailable).
 	Error string
 }
 
-// AuditTrail loads the audit log and verifies its chain in memory, so the view
-// shows both the entries and whether they are intact (PROJECT-BOOK §7.8/§7.11.8).
+// AuditTrail loads the audit log and verifies its keyed chain (and truncation
+// high-water mark), so the view shows both the entries and their integrity state
+// (PROJECT-BOOK §7.8/§7.11.8).
 func (s *Service) AuditTrail(ctx context.Context) (AuditStatus, error) {
 	entries, err := s.store.AuditEntries(ctx)
 	if err != nil {
 		return AuditStatus{}, fmt.Errorf("loading audit entries: %w", err)
 	}
-	return verify(entries), nil
-}
-
-func verify(entries []domain.AuditEntry) AuditStatus {
-	status := AuditStatus{Entries: entries}
-	n, err := audit.VerifyEntries(entries)
-	status.VerifiedCount = n
-	if err != nil {
-		status.Error = err.Error()
-		return status
+	result, vErr := s.verifier.Verify(ctx)
+	status := AuditStatus{
+		Entries:       entries,
+		State:         string(result.State),
+		Verified:      result.State == audit.VerifyIntact,
+		VerifiedCount: result.VerifiedCount,
 	}
-	status.Verified = true
-	return status
+	if vErr != nil {
+		status.Error = vErr.Error()
+	}
+	return status, nil
 }
 
 // Export is the portable, self-verifying snapshot of the accountability record
@@ -114,6 +124,7 @@ type Export struct {
 	Operations    []domain.Operation  `json:"operations"`
 	Audit         []domain.AuditEntry `json:"audit"`
 	AuditVerified bool                `json:"auditVerified"`
+	AuditState    string              `json:"auditState"`
 	AuditError    string              `json:"auditError,omitempty"`
 }
 
@@ -134,6 +145,7 @@ func (s *Service) Export(ctx context.Context) (Export, error) {
 		Operations:    ops,
 		Audit:         trail.Entries,
 		AuditVerified: trail.Verified,
+		AuditState:    trail.State,
 		AuditError:    trail.Error,
 	}, nil
 }
@@ -157,9 +169,16 @@ func ParseExport(data []byte) (Export, error) {
 	return e, nil
 }
 
-// VerifyExportedChain confirms an export's audit chain is internally consistent,
-// independent of any database (PROJECT-BOOK §7.11.8). It lets a recipient of an
-// exported file check the chain on its own.
+// VerifyExportedChain confirms an export's audit chain is structurally
+// consistent (contiguous sequence + intact back-links), independent of any
+// database (PROJECT-BOOK §7.11.8). A recipient cannot confirm the keyed MACs
+// without the per-install key, so this is a structural check; it returns how
+// many entries are consistent and an error if the structure is broken.
 func VerifyExportedChain(e Export) (int, error) {
-	return audit.VerifyEntries(e.Audit)
+	result := audit.VerifyEntries(nil, e.Audit)
+	if result.VerifiedCount < len(e.Audit) {
+		return result.VerifiedCount, fmt.Errorf("%w: exported chain breaks at entry %d",
+			audit.ErrChainBroken, result.VerifiedCount+1)
+	}
+	return result.VerifiedCount, nil
 }

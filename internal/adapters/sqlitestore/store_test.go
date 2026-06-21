@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/drydock/drydock/internal/adapters/auditmark"
 	"github.com/drydock/drydock/internal/core/audit"
 	"github.com/drydock/drydock/internal/core/domain"
 	"github.com/drydock/drydock/internal/core/secret"
@@ -110,7 +111,7 @@ func TestAuditEntryRoundTripThroughStore(t *testing.T) {
 		HostRef: "host-1",
 		Subject: "example-host",
 		Detail:  map[string]any{"transport": "ssh"},
-		Hash:    "deadbeef",
+		MAC:     "deadbeef",
 	}
 	require.NoError(t, store.AppendAuditEntry(ctx, entry))
 
@@ -124,7 +125,7 @@ func TestAppendAuditEntryRejectsDuplicateSeq(t *testing.T) {
 	ctx := context.Background()
 	store := tempStore(t)
 
-	entry := domain.AuditEntry{Seq: 1, At: time.Now().UTC(), Action: domain.ActionHostConnect, Hash: "h1"}
+	entry := domain.AuditEntry{Seq: 1, At: time.Now().UTC(), Action: domain.ActionHostConnect, MAC: "h1"}
 	require.NoError(t, store.AppendAuditEntry(ctx, entry))
 
 	// The primary key on seq enforces append-only positions.
@@ -138,7 +139,8 @@ func TestAppendAuditEntryRejectsDuplicateSeq(t *testing.T) {
 func TestAuditChainVerifyAndTamperWithRealStore(t *testing.T) {
 	ctx := context.Background()
 	store := tempStore(t)
-	log := audit.New(store, nil)
+	key := []byte("drydock-store-test-audit-key-0123")
+	log := audit.New(store, nil, key, nil)
 
 	for _, subject := range []string{"alpha", "beta", "gamma"} {
 		_, err := log.Append(ctx, audit.Record{
@@ -150,14 +152,44 @@ func TestAuditChainVerifyAndTamperWithRealStore(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	count, err := log.Verify(ctx)
+	result, err := log.Verify(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, 3, count)
+	assert.Equal(t, audit.VerifyIntact, result.State)
+	assert.Equal(t, 3, result.VerifiedCount)
 
 	// Tamper with a persisted entry directly, bypassing the append path.
 	_, err = store.db.ExecContext(ctx, `UPDATE audit_log SET subject = 'forged' WHERE seq = 2`)
 	require.NoError(t, err)
 
-	_, err = log.Verify(ctx)
+	result, err = log.Verify(ctx)
 	assert.ErrorIs(t, err, audit.ErrChainBroken)
+	assert.Equal(t, audit.VerifyInPlaceTampered, result.State)
+}
+
+// TestAuditChainDetectsTruncationWithRealStore verifies that removing rows from
+// the audit table's tail is caught via the external high-water mark, even though
+// the remaining keyed chain is internally valid (ADR-0025, P1 gate).
+func TestAuditChainDetectsTruncationWithRealStore(t *testing.T) {
+	ctx := context.Background()
+	store := tempStore(t)
+	key := []byte("drydock-store-test-audit-key-0123")
+	mark := auditmark.NewFile(filepath.Join(t.TempDir(), "audit.hwm"))
+	log := audit.New(store, nil, key, mark)
+
+	for _, subject := range []string{"alpha", "beta", "gamma", "delta"} {
+		_, err := log.Append(ctx, audit.Record{Action: domain.ActionContainerStop, Subject: subject})
+		require.NoError(t, err)
+	}
+	intact, err := log.Verify(ctx)
+	require.NoError(t, err)
+	require.Equal(t, audit.VerifyIntact, intact.State)
+
+	// Delete the tail directly: the remaining chain still links cleanly, but the
+	// high-water mark (seq 4) now exceeds the last row.
+	_, err = store.db.ExecContext(ctx, `DELETE FROM audit_log WHERE seq > 2`)
+	require.NoError(t, err)
+
+	result, err := log.Verify(ctx)
+	assert.ErrorIs(t, err, audit.ErrChainBroken)
+	assert.Equal(t, audit.VerifyTruncated, result.State)
 }

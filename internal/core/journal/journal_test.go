@@ -13,6 +13,8 @@ import (
 	"github.com/drydock/drydock/internal/core/journal"
 )
 
+var testKey = []byte("drydock-test-audit-key-0123456789")
+
 // fakeStore records the query it was handed and returns canned data.
 type fakeStore struct {
 	lastQuery domain.OperationQuery
@@ -29,22 +31,33 @@ func (f *fakeStore) AuditEntries(context.Context) ([]domain.AuditEntry, error) {
 	return f.entries, nil
 }
 
-// chain builds a valid hash-chained audit log from records.
+// fakeVerifier returns a canned verification result (the journal delegates the
+// cryptographic check to the audit package).
+type fakeVerifier struct {
+	result audit.VerifyResult
+	err    error
+}
+
+func (v fakeVerifier) Verify(context.Context) (audit.VerifyResult, error) {
+	return v.result, v.err
+}
+
+// chain builds a valid keyed hash-chained audit log from records.
 func chain(t *testing.T, records ...audit.Record) []domain.AuditEntry {
 	t.Helper()
 	var entries []domain.AuditEntry
-	prevHash := ""
+	prevMAC := ""
 	at := time.Unix(0, 1_700_000_000_000_000_000).UTC()
 	for i, r := range records {
 		e := domain.AuditEntry{
 			Seq: int64(i + 1), At: at.Add(time.Duration(i) * time.Second),
 			Action: r.Action, HostRef: r.HostRef, Subject: r.Subject, Detail: r.Detail,
-			PrevHash: prevHash,
+			PrevMAC: prevMAC,
 		}
-		hash, err := audit.ComputeHash(prevHash, e)
+		mac, err := audit.ComputeMAC(testKey, prevMAC, e)
 		require.NoError(t, err)
-		e.Hash = hash
-		prevHash = hash
+		e.MAC = mac
+		prevMAC = mac
 		entries = append(entries, e)
 	}
 	return entries
@@ -52,7 +65,7 @@ func chain(t *testing.T, records ...audit.Record) []domain.AuditEntry {
 
 func TestDestructiveOnlyUsesDomainKinds(t *testing.T) {
 	store := &fakeStore{}
-	svc := journal.New(store)
+	svc := journal.New(store, fakeVerifier{})
 
 	_, err := svc.Operations(context.Background(), journal.Filter{DestructiveOnly: true})
 	require.NoError(t, err)
@@ -61,7 +74,7 @@ func TestDestructiveOnlyUsesDomainKinds(t *testing.T) {
 
 func TestKindFilterPassesSingleKind(t *testing.T) {
 	store := &fakeStore{}
-	svc := journal.New(store)
+	svc := journal.New(store, fakeVerifier{})
 
 	_, err := svc.Operations(context.Background(), journal.Filter{
 		HostRef: "h1", Kind: string(domain.OpContainerStart), Limit: 50,
@@ -72,36 +85,34 @@ func TestKindFilterPassesSingleKind(t *testing.T) {
 	assert.Equal(t, 50, store.lastQuery.Limit)
 }
 
-func TestAuditTrailReportsIntactChain(t *testing.T) {
+func TestAuditTrailForwardsIntactState(t *testing.T) {
 	store := &fakeStore{entries: chain(
 		t,
 		audit.Record{Action: domain.ActionHostConnect, Subject: "local"},
 		audit.Record{Action: domain.ActionContainerStop, Subject: "c1"},
 	)}
-	svc := journal.New(store)
+	svc := journal.New(store, fakeVerifier{result: audit.VerifyResult{State: audit.VerifyIntact, VerifiedCount: 2}})
 
 	status, err := svc.AuditTrail(context.Background())
 	require.NoError(t, err)
 	assert.True(t, status.Verified)
+	assert.Equal(t, "intact", status.State)
 	assert.Equal(t, 2, status.VerifiedCount)
+	assert.Len(t, status.Entries, 2)
 	assert.Empty(t, status.Error)
 }
 
-func TestAuditTrailDetectsTampering(t *testing.T) {
-	entries := chain(
-		t,
-		audit.Record{Action: domain.ActionHostConnect, Subject: "local"},
-		audit.Record{Action: domain.ActionContainerRemove, Subject: "c1"},
-	)
-	// Tamper with a recorded entry's content after it was hashed.
-	entries[1].Subject = "c2"
-	store := &fakeStore{entries: entries}
-	svc := journal.New(store)
+func TestAuditTrailForwardsTamperedState(t *testing.T) {
+	store := &fakeStore{entries: chain(t, audit.Record{Action: domain.ActionHostConnect, Subject: "local"})}
+	svc := journal.New(store, fakeVerifier{
+		result: audit.VerifyResult{State: audit.VerifyInPlaceTampered, VerifiedCount: 1},
+		err:    audit.ErrChainBroken,
+	})
 
 	status, err := svc.AuditTrail(context.Background())
 	require.NoError(t, err)
 	assert.False(t, status.Verified)
-	assert.Equal(t, 1, status.VerifiedCount, "first entry verified before the break")
+	assert.Equal(t, "in_place_tampered", status.State)
 	assert.Contains(t, status.Error, "audit chain broken")
 }
 
@@ -119,15 +130,14 @@ func TestExportRoundTripsAndChainVerifies(t *testing.T) {
 			audit.Record{Action: domain.ActionContainerRemove, Subject: "c1", Detail: map[string]any{"ack": true}},
 		),
 	}
-	svc := journal.New(store)
+	svc := journal.New(store, fakeVerifier{result: audit.VerifyResult{State: audit.VerifyIntact, VerifiedCount: 2}})
 
 	exp, err := svc.Export(context.Background())
 	require.NoError(t, err)
 	assert.True(t, exp.AuditVerified)
+	assert.Equal(t, "intact", exp.AuditState)
 	assert.Equal(t, journal.ExportSchemaVersion, exp.SchemaVersion)
-
-	// Export uses an unbounded query so the whole record is captured.
-	assert.Equal(t, -1, store.lastQuery.Limit)
+	assert.Equal(t, -1, store.lastQuery.Limit, "export uses an unbounded query")
 
 	data, err := journal.MarshalExport(exp)
 	require.NoError(t, err)
@@ -136,7 +146,7 @@ func TestExportRoundTripsAndChainVerifies(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, exp, got, "export round-trips through JSON unchanged")
 
-	// The exported chain verifies independently of any database.
+	// The exported chain is structurally consistent without the install key.
 	n, err := journal.VerifyExportedChain(got)
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)

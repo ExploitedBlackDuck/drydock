@@ -52,8 +52,10 @@ type AuditEntry struct {
 	// Detail carries action-specific structured context, including, for
 	// destructive operations, the computed impact and the acknowledgement.
 	Detail map[string]any
-	// PrevHash is the hash of the preceding entry ("" for the first entry).
-	PrevHash string
-	// Hash is SHA-256 over PrevHash and this entry's canonical encoding.
-	Hash string
+	// PrevMAC is the MAC of the preceding entry ("" for the first entry).
+	PrevMAC string
+	// MAC authenticates this entry: HMAC-SHA256 over PrevMAC and this entry's
+	// canonical encoding under the per-install audit key (ADR-0025), or a plain
+	// SHA-256 in the degraded key-unavailable mode.
+	MAC string
 }

@@ -20,10 +20,10 @@ func (s *Store) AppendAuditEntry(ctx context.Context, e domain.AuditEntry) error
 		return fmt.Errorf("encoding audit detail: %w", err)
 	}
 	_, err = s.db.ExecContext(ctx,
-		`INSERT INTO audit_log (seq, at, action, host_id, subject, detail, prev_hash, hash)
+		`INSERT INTO audit_log (seq, at, action, host_id, subject, detail, prev_mac, mac)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		e.Seq, e.At.UTC().UnixNano(), string(e.Action), nullable(e.HostRef),
-		e.Subject, string(detail), e.PrevHash, e.Hash)
+		e.Subject, string(detail), e.PrevMAC, e.MAC)
 	if err != nil {
 		return fmt.Errorf("inserting audit entry: %w", err)
 	}
@@ -34,7 +34,7 @@ func (s *Store) AppendAuditEntry(ctx context.Context, e domain.AuditEntry) error
 // It implements audit.Store.
 func (s *Store) LastAuditEntry(ctx context.Context) (domain.AuditEntry, bool, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT seq, at, action, host_id, subject, detail, prev_hash, hash
+		`SELECT seq, at, action, host_id, subject, detail, prev_mac, mac
 		 FROM audit_log ORDER BY seq DESC LIMIT 1`)
 	entry, err := scanAuditEntry(row)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -50,7 +50,7 @@ func (s *Store) LastAuditEntry(ctx context.Context) (domain.AuditEntry, bool, er
 // audit.Store.
 func (s *Store) AuditEntries(ctx context.Context) ([]domain.AuditEntry, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT seq, at, action, host_id, subject, detail, prev_hash, hash
+		`SELECT seq, at, action, host_id, subject, detail, prev_mac, mac
 		 FROM audit_log ORDER BY seq ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("querying audit entries: %w", err)
@@ -84,7 +84,7 @@ func scanAuditEntry(row scanner) (domain.AuditEntry, error) {
 		hostID     sql.NullString
 		detailJSON string
 	)
-	if err := row.Scan(&e.Seq, &atNanos, &action, &hostID, &e.Subject, &detailJSON, &e.PrevHash, &e.Hash); err != nil {
+	if err := row.Scan(&e.Seq, &atNanos, &action, &hostID, &e.Subject, &detailJSON, &e.PrevMAC, &e.MAC); err != nil {
 		return domain.AuditEntry{}, err
 	}
 	e.At = time.Unix(0, atNanos).UTC()

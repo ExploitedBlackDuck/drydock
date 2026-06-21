@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Audit chain is now HMAC-keyed and truncation-aware (ADR-0025).** Entries are
+  authenticated with `HMAC-SHA256(K, prev_mac || canonical(entry))` under a
+  per-install audit key held in the OS keyring (separate from the data key), and
+  the latest `(seq, mac)` is persisted as an external high-water mark outside the
+  database so tail-truncation is detectable. Verification now reports one of four
+  states — intact / in-place-tampered / truncated / key-unavailable — surfaced in
+  the Audit view, which states its guarantee honestly (tamper-evident, not
+  tamper-proof). The `audit_log` columns are renamed `prev_hash`/`hash` →
+  `prev_mac`/`mac` (migration `0002`). Closes a v1-blocking gap from the updated
+  project book; fresh installs are keyed from the first entry (a pre-existing
+  unkeyed chain reads as tampered until re-based).
+
 ## [0.1.0] - 2026-06-20
 
 First tagged release: the complete P0–P9 build plan plus the interactive exec

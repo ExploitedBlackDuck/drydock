@@ -6,6 +6,7 @@ package audit
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -42,17 +43,30 @@ func canonical(e domain.AuditEntry) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// ComputeHash returns the hex-encoded SHA-256 of the previous entry's hash
-// concatenated with this entry's canonical encoding:
+// ComputeMAC returns the hex-encoded authentication code over the previous
+// entry's MAC concatenated with this entry's canonical encoding (ADR-0025):
 //
-//	hash = SHA256(prev_hash || canonical(entry))
-func ComputeHash(prevHash string, e domain.AuditEntry) (string, error) {
+//	mac = HMAC-SHA256(key, prev_mac || canonical(entry))
+//
+// When key is empty the function degrades to a plain SHA-256 — a structural
+// chain that is still tamper-evident against in-place edits but not keyed; this
+// is the key-unavailable mode, flagged as such on verify rather than claimed
+// intact.
+func ComputeMAC(key []byte, prevMAC string, e domain.AuditEntry) (string, error) {
 	body, err := canonical(e)
 	if err != nil {
 		return "", err
 	}
-	h := sha256.New()
-	h.Write([]byte(prevHash))
-	h.Write(body)
+	var h interface {
+		Write([]byte) (int, error)
+		Sum([]byte) []byte
+	}
+	if len(key) > 0 {
+		h = hmac.New(sha256.New, key)
+	} else {
+		h = sha256.New()
+	}
+	_, _ = h.Write([]byte(prevMAC))
+	_, _ = h.Write(body)
 	return hex.EncodeToString(h.Sum(nil)), nil
 }

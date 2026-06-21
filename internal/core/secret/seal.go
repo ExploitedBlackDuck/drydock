@@ -13,6 +13,49 @@ import (
 // dataKeyName is the keyring entry holding the per-install data key.
 const dataKeyName = "data-key"
 
+// auditKeyName is the keyring entry holding the per-install audit HMAC key.
+const auditKeyName = "audit-key"
+
+// auditKeySize is the HMAC-SHA256 key length for the audit chain (ADR-0025).
+const auditKeySize = 32
+
+// LoadOrCreateAuditKey returns the per-install audit HMAC key, creating and
+// persisting a fresh random key in the keyring on first run (ADR-0025). The key
+// is separate from the data key so the audit chain's integrity does not depend
+// on the value-sealing key. When the keyring is unavailable the caller runs the
+// audit log in its degraded key-unavailable mode (it must not block startup).
+func LoadOrCreateAuditKey(ctx context.Context, store SecretStore) ([]byte, error) {
+	return loadOrCreateKey(ctx, store, auditKeyName, auditKeySize)
+}
+
+// loadOrCreateKey fetches a base64-encoded keyring secret of the expected size,
+// creating a fresh random one if absent.
+func loadOrCreateKey(ctx context.Context, store SecretStore, name string, size int) ([]byte, error) {
+	encoded, err := store.Get(ctx, name)
+	switch {
+	case err == nil:
+		key, decErr := base64.StdEncoding.DecodeString(encoded)
+		if decErr != nil {
+			return nil, fmt.Errorf("decoding %s: %w", name, decErr)
+		}
+		if len(key) != size {
+			return nil, fmt.Errorf("%s has wrong length %d", name, len(key))
+		}
+		return key, nil
+	case errors.Is(err, ErrNotFound):
+		key := make([]byte, size)
+		if _, randErr := rand.Read(key); randErr != nil {
+			return nil, fmt.Errorf("generating %s: %w", name, randErr)
+		}
+		if setErr := store.Set(ctx, name, base64.StdEncoding.EncodeToString(key)); setErr != nil {
+			return nil, fmt.Errorf("storing %s: %w", name, setErr)
+		}
+		return key, nil
+	default:
+		return nil, fmt.Errorf("loading %s: %w", name, err)
+	}
+}
+
 // SealedValue is a value encrypted with the data key: a per-seal random nonce
 // and the AEAD ciphertext. It maps directly to the sealed_values table columns
 // (PROJECT-BOOK §7.7).
@@ -47,29 +90,7 @@ func NewSealer(ctx context.Context, store SecretStore) (*Sealer, error) {
 }
 
 func loadOrCreateDataKey(ctx context.Context, store SecretStore) ([]byte, error) {
-	encoded, err := store.Get(ctx, dataKeyName)
-	switch {
-	case err == nil:
-		key, decErr := base64.StdEncoding.DecodeString(encoded)
-		if decErr != nil {
-			return nil, fmt.Errorf("decoding data key: %w", decErr)
-		}
-		if len(key) != chacha20poly1305.KeySize {
-			return nil, fmt.Errorf("data key has wrong length %d", len(key))
-		}
-		return key, nil
-	case errors.Is(err, ErrNotFound):
-		key := make([]byte, chacha20poly1305.KeySize)
-		if _, randErr := rand.Read(key); randErr != nil {
-			return nil, fmt.Errorf("generating data key: %w", randErr)
-		}
-		if setErr := store.Set(ctx, dataKeyName, base64.StdEncoding.EncodeToString(key)); setErr != nil {
-			return nil, fmt.Errorf("storing data key: %w", setErr)
-		}
-		return key, nil
-	default:
-		return nil, fmt.Errorf("loading data key: %w", err)
-	}
+	return loadOrCreateKey(ctx, store, dataKeyName, chacha20poly1305.KeySize)
 }
 
 // Seal encrypts plaintext, returning a fresh-nonce SealedValue.
