@@ -37,6 +37,9 @@ type ExecSpec struct {
 	User       string
 	WorkingDir string
 	Tty        bool
+	// Env is additional environment for the command (NAME=value). Its values are
+	// secret material: redacted from the recorded operation and audit (ADR-0023).
+	Env []string
 }
 
 // ExecStream is the bidirectional I/O of a running exec session: read the

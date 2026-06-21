@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Typed option catalog with secret-capture redaction (ADR-0023).** An embedded
+  TOML catalog (`internal/core/options/catalogs/docker@1.51.toml`) defines each
+  `run`/`create`/`exec` option with a type, risk, and a `secret` flag, and a
+  builder validates a selection's types, `requires`, and `conflicts_with`. Secret
+  -flagged values (container env, `--env-file`, registry credentials, secret
+  build args) are now **redacted on capture** — recorded as `‹redacted›` in the
+  persisted operation, the audit detail, and logs, never in cleartext. Exec gains
+  an `Env` field whose values are redacted. Closes a v1-blocking gap and unblocks
+  the option-rich run/create UI deferred since P5.
 - **Consistent database backup (ADR-0024).** A `Back up…` action (and
   `BackupDatabase` binding) writes a single consistent snapshot of the database
   via SQLite `VACUUM INTO` — safe under WAL with concurrent writers, never a raw

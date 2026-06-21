@@ -26,6 +26,7 @@ import (
 	"github.com/drydock/drydock/internal/core/hosts"
 	"github.com/drydock/drydock/internal/core/journal"
 	"github.com/drydock/drydock/internal/core/operations"
+	"github.com/drydock/drydock/internal/core/options"
 	"github.com/drydock/drydock/internal/core/secret"
 	"github.com/drydock/drydock/internal/platform/config"
 	"github.com/drydock/drydock/internal/platform/logging"
@@ -123,7 +124,11 @@ func run() error {
 	}
 	defer func() { _ = registry.Close(context.Background()) }()
 
-	ops := operations.New(registry, store, auditLog, nil)
+	catalog, err := options.DefaultCatalog()
+	if err != nil {
+		return fmt.Errorf("loading option catalog: %w", err)
+	}
+	ops := operations.New(registry, store, auditLog, catalog, nil)
 	jrnl := journal.New(store, auditLog)
 
 	// Roll off resource history beyond the configured retention window. The

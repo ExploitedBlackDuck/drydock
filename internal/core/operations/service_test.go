@@ -2,6 +2,7 @@ package operations_test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/drydock/drydock/internal/core/domain"
 	"github.com/drydock/drydock/internal/core/engine"
 	"github.com/drydock/drydock/internal/core/operations"
+	"github.com/drydock/drydock/internal/core/options"
 )
 
 // fakeEngine records which mutation was invoked.
@@ -127,7 +129,11 @@ func newService(observe bool) (*operations.Service, *fakeMutator, *fakeStore, *f
 	m := &fakeMutator{eng: eng, observe: observe}
 	store := &fakeStore{}
 	aud := &fakeAuditor{}
-	return operations.New(m, store, aud, nil), m, store, aud
+	catalog, err := options.DefaultCatalog()
+	if err != nil {
+		panic(err)
+	}
+	return operations.New(m, store, aud, catalog, nil), m, store, aud
 }
 
 func TestStartRecordsOperationAndAudit(t *testing.T) {
@@ -234,6 +240,29 @@ func TestComposeDownVolumesWithAckProceeds(t *testing.T) {
 	require.Len(t, aud.records, 1)
 	assert.Equal(t, domain.ActionComposeDown, aud.records[0].Action)
 	assert.Equal(t, true, aud.records[0].Detail["volumes"])
+}
+
+func TestExecRedactsSecretEnvOnCapture(t *testing.T) {
+	svc, _, store, aud := newService(false)
+
+	_, err := svc.Exec(context.Background(), "h1", "c1", engine.ExecSpec{
+		Cmd: []string{"printenv"}, User: "root", Env: []string{"DB_PASSWORD=hunter2"},
+	})
+	require.NoError(t, err)
+
+	// The persisted operation redacts the secret env; the non-secret user stays.
+	require.Len(t, store.ops, 1)
+	op := store.ops[0]
+	assert.Equal(t, options.RedactedValue, op.OptionSet["env"])
+	assert.Equal(t, "root", op.OptionSet["user"])
+
+	// The audit detail redacts it too.
+	require.Len(t, aud.records, 1)
+	assert.Equal(t, options.RedactedValue, aud.records[0].Detail["env"])
+
+	// The secret value appears in no persisted row or audit detail.
+	assert.NotContains(t, fmt.Sprint(op.OptionSet), "hunter2")
+	assert.NotContains(t, fmt.Sprint(aud.records[0].Detail), "hunter2")
 }
 
 func TestObserveModeRejectsAndIsRecorded(t *testing.T) {

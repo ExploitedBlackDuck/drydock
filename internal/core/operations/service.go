@@ -40,20 +40,38 @@ type Auditor interface {
 	Append(ctx context.Context, r audit.Record) (domain.AuditEntry, error)
 }
 
-// Service executes and records mutating operations.
-type Service struct {
-	mutator Mutator
-	store   Store
-	auditor Auditor
-	now     func() time.Time
+// Redactor replaces secret-flagged option values before they are captured into a
+// recorded operation or the audit log (ADR-0023), satisfied by *options.Catalog.
+// A nil Redactor leaves option sets unchanged.
+type Redactor interface {
+	Redact(set map[string]any) map[string]any
 }
 
-// New constructs the service. now defaults to time.Now.
-func New(mutator Mutator, store Store, auditor Auditor, now func() time.Time) *Service {
+// Service executes and records mutating operations.
+type Service struct {
+	mutator  Mutator
+	store    Store
+	auditor  Auditor
+	redactor Redactor
+	now      func() time.Time
+}
+
+// New constructs the service. redactor may be nil (no redaction); now defaults
+// to time.Now.
+func New(mutator Mutator, store Store, auditor Auditor, redactor Redactor, now func() time.Time) *Service {
 	if now == nil {
 		now = time.Now
 	}
-	return &Service{mutator: mutator, store: store, auditor: auditor, now: now}
+	return &Service{mutator: mutator, store: store, auditor: auditor, redactor: redactor, now: now}
+}
+
+// redact applies the configured redactor, leaving the set unchanged when none is
+// configured.
+func (s *Service) redact(set map[string]any) map[string]any {
+	if s.redactor == nil {
+		return set
+	}
+	return s.redactor.Redact(set)
 }
 
 // Start starts a container.
@@ -99,8 +117,12 @@ func (s *Service) Exec(ctx context.Context, hostID, containerID string, spec eng
 		stream = st
 		return nil
 	})
-	s.record(ctx, hostID, domain.OpContainerExec, containerID,
-		map[string]any{"cmd": spec.Cmd, "user": spec.User}, s.now(), s.now(), err)
+	optionSet := map[string]any{"cmd": spec.Cmd, "user": spec.User}
+	if len(spec.Env) > 0 {
+		// Captured but redacted: env values are secret material (ADR-0023).
+		optionSet["env"] = spec.Env
+	}
+	s.record(ctx, hostID, domain.OpContainerExec, containerID, optionSet, s.now(), s.now(), err)
 	if err != nil {
 		return nil, err
 	}
@@ -255,6 +277,10 @@ func (s *Service) record(
 	if opErr != nil {
 		result = "error: " + opErr.Error()
 	}
+
+	// Redact secret-flagged values before they reach the persisted record or the
+	// audit log (ADR-0023): a captured option set never carries cleartext secrets.
+	optionSet = s.redact(optionSet)
 
 	op := domain.Operation{
 		ID:        newID(),

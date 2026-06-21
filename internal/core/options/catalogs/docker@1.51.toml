@@ -1,0 +1,137 @@
+# Drydock option catalog for the Docker Engine API (ADR-0011/0023, §7.5). The
+# builder validates a selection against these definitions and assembles API
+# parameters — never a shell — and the capture path redacts any value whose
+# option is flagged `secret` before it reaches the operations record, the audit
+# log, or slog. Embedded; one catalog per supported API version.
+
+schema = 1
+api_version = "1.51"
+
+# --- Environment & credentials (secret-bearing) ---------------------------
+
+[[option]]
+name = "env"
+type = "string-list"
+category = "container"
+summary = "Set an environment variable (NAME=value)"
+description = "Passed to the container's environment. Values are treated as secret material and never persisted in cleartext."
+risk = "mutating"
+affects_data = false
+secret = true
+
+[[option]]
+name = "env-file"
+type = "path"
+category = "container"
+summary = "Read environment variables from a file"
+description = "The file's contents are expanded into the environment and treated as secret material."
+risk = "mutating"
+affects_data = false
+secret = true
+
+[[option]]
+name = "registry-user"
+type = "string"
+category = "registry"
+summary = "Registry username"
+description = "The username for an authenticated registry pull."
+risk = "mutating"
+affects_data = false
+secret = false
+
+[[option]]
+name = "registry-password"
+type = "string"
+category = "registry"
+summary = "Registry password or token for an authenticated pull"
+description = "Used only for the call it authorizes; never written to history or logs."
+risk = "mutating"
+affects_data = false
+secret = true
+requires = ["registry-user"]
+
+[[option]]
+name = "build-secret"
+type = "string-list"
+category = "build"
+summary = "Secret exposed to a build (id=…,src=…)"
+description = "Build-time secret material; redacted on capture."
+risk = "mutating"
+affects_data = false
+secret = true
+
+# --- Exec options ---------------------------------------------------------
+
+[[option]]
+name = "user"
+type = "string"
+category = "exec"
+summary = "User (and optional group) to run as"
+description = "Runs the command as this user inside the container."
+risk = "mutating"
+affects_data = false
+secret = false
+
+[[option]]
+name = "workdir"
+type = "string"
+category = "exec"
+summary = "Working directory inside the container"
+description = "Sets the working directory for the command."
+risk = "mutating"
+affects_data = false
+secret = false
+
+[[option]]
+name = "tty"
+type = "bool"
+category = "exec"
+summary = "Allocate a pseudo-TTY"
+description = "Allocates an interactive terminal for the exec session."
+risk = "mutating"
+affects_data = false
+secret = false
+
+# --- Container run/create options -----------------------------------------
+
+[[option]]
+name = "publish"
+type = "string-list"
+category = "container"
+summary = "Publish a container port to the host"
+description = "Binds a container port to the host. Prefer 127.0.0.1 to avoid exposing a service on all interfaces."
+risk = "mutating"
+affects_data = false
+secret = false
+
+[[option]]
+name = "network-host"
+type = "bool"
+category = "container"
+summary = "Use the host network namespace"
+description = "Shares the host's network. Mutually exclusive with publishing ports — a host-network container publishes nothing."
+risk = "mutating"
+affects_data = false
+secret = false
+conflicts_with = ["publish"]
+
+[[option]]
+name = "restart"
+type = "string"
+default = "no"
+category = "container"
+summary = "Restart policy"
+description = "One of no, on-failure, always, unless-stopped."
+risk = "mutating"
+affects_data = false
+secret = false
+
+[[option]]
+name = "volume"
+type = "string-list"
+category = "container"
+summary = "Bind-mount a volume or host path"
+description = "Mounts a named volume or host path into the container."
+risk = "mutating"
+affects_data = true
+secret = false

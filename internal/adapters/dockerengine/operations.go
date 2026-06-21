@@ -182,6 +182,7 @@ func buildExecOptions(spec engine.ExecSpec) container.ExecOptions {
 		Cmd:          spec.Cmd,
 		User:         spec.User,
 		WorkingDir:   spec.WorkingDir,
+		Env:          spec.Env,
 		Tty:          spec.Tty,
 		AttachStdin:  true,
 		AttachStdout: true,
