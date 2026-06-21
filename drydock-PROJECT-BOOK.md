@@ -200,13 +200,13 @@ XDG-style resolver:
 
 ## 5. Repo layout & conventions
 
-> **Amended by ADR-0016:** the composition root is `main.go` at the repository
+> **Amended by ADR-0014:** the composition root is `main.go` at the repository
 > root (not `cmd/drydock/main.go`), because the Wails v2 toolchain expects the
 > `main` package at the module root. It stays thin; the rule is unchanged.
 
 ```
 drydock/
-├── main.go                   # composition root: build deps, wire, run. Thin. (ADR-0016)
+├── main.go                   # composition root: build deps, wire, run. Thin. (ADR-0014)
 ├── app/                      # Wails binding layer (only place importing wails)
 │   ├── app.go
 │   ├── events.go             # typed event names + emit helpers
@@ -248,7 +248,7 @@ drydock/
 
 Conventions:
 - Package names are nouns, lower-case, no stutter (`hosts.Registry`, not `hosts.HostRegistry`).
-- The root `main.go` is the only composition root (ADR-0016). Business logic there is a defect.
+- The root `main.go` is the only composition root (ADR-0014). Business logic there is a defect.
 - Generated code is marked generated and reviewed when regenerated.
 
 > **Shared-kit note:** the slog setup, XDG resolver, error-DTO mapping, the `Store`/`SecretStore` ports, and the SQLite migration harness are generic and identical to the sibling projects (Conductor, Recon Deck). If a shared module already exists, depend on it; otherwise build cleanly here and extract on second use.
