@@ -8,6 +8,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Compose plan diff engine (Phase 2, P10, ADR-0016).** `internal/core/compose.Plan`
+  classifies what `compose up` would do — per service create/recreate/start/noop
+  and per network/volume create — by diffing the desired project against observed
+  engine state via the Compose config hash. Recreations that interrupt a running
+  container or drop an anonymous volume mark the plan **destructive** (routing to
+  the §7.4 acknowledgement path); a config hash that can't be compared **degrades**
+  to a labelled coarse image diff; and an inaccessible project source yields an
+  explicit **source-unavailable** plan that is labelled, never a false "no
+  changes." Pure and table-tested. (compose-go parsing, the apply path, and the
+  GUI panel follow.)
+
 - **Log-stream backpressure (ADR-0021).** A bounded, coalescing buffer
   (`internal/core/stream.LineBuffer`) sits between the engine log reader and the
   UI event bus: a flood is rate-limited by a ticker and, when lines overflow the
