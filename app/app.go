@@ -28,7 +28,10 @@ type App struct {
 	samples  SampleStore
 	backup   BackupStore
 	timeline TimelineStore
-	ctx      context.Context
+	// snapshotHelper is the digest-pinned helper image for volume snapshots,
+	// resolved from the option catalog (ADR-0020).
+	snapshotHelper string
+	ctx            context.Context
 
 	// skewMu guards the latest observed host-vs-desktop clock skew per host,
 	// surfaced on the timeline (ADR-0018).
@@ -47,20 +50,21 @@ type App struct {
 
 // New constructs the binding layer with its injected dependencies. Nothing is
 // constructed globally (PROJECT-BOOK §2.3); main is the composition root.
-func New(log *slog.Logger, runtime shell.Runtime, version string, registry *hosts.Registry, ops *operations.Service, jrnl *journal.Service, samples SampleStore, backup BackupStore, timeline TimelineStore) *App {
+func New(log *slog.Logger, runtime shell.Runtime, version string, registry *hosts.Registry, ops *operations.Service, jrnl *journal.Service, samples SampleStore, backup BackupStore, timeline TimelineStore, snapshotHelper string) *App {
 	return &App{
-		log:      log,
-		runtime:  runtime,
-		version:  version,
-		registry: registry,
-		ops:      ops,
-		journal:  jrnl,
-		samples:  samples,
-		backup:   backup,
-		timeline: timeline,
-		streams:  map[string]context.CancelFunc{},
-		execs:    map[string]*execSession{},
-		hostSkew: map[string]time.Duration{},
+		log:            log,
+		runtime:        runtime,
+		version:        version,
+		registry:       registry,
+		ops:            ops,
+		journal:        jrnl,
+		samples:        samples,
+		backup:         backup,
+		timeline:       timeline,
+		snapshotHelper: snapshotHelper,
+		streams:        map[string]context.CancelFunc{},
+		execs:          map[string]*execSession{},
+		hostSkew:       map[string]time.Duration{},
 	}
 }
 

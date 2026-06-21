@@ -187,6 +187,43 @@ func (s *Service) PruneBuildCache(ctx context.Context, hostID string, ack bool) 
 		func(ctx context.Context, e engine.Engine) (int64, error) { return e.PruneBuildCache(ctx) })
 }
 
+// VolumeSnapshot captures a volume's contents to dest via a read-only helper
+// container (ADR-0020, §7.12.6). Because it starts a container it is a mutation,
+// so it passes the observe-mode guard like every other mutation; it requires
+// acknowledgement and is recorded and audited. It never blocks or precedes
+// deletion — it is an offered safeguard.
+func (s *Service) VolumeSnapshot(ctx context.Context, hostID, volume, dest, helperImage string, ack bool) error {
+	if !ack {
+		return fmt.Errorf("%w: %s", ErrConfirmationRequired, domain.OpVolumeSnapshot)
+	}
+	started := s.now()
+	var written int64
+	err := s.mutator.Mutate(ctx, hostID, func(ctx context.Context, e engine.Engine) error {
+		n, serr := e.SnapshotVolume(ctx, volume, helperImage, dest)
+		written = n
+		return serr
+	})
+	s.record(ctx, hostID, domain.OpVolumeSnapshot, volume,
+		map[string]any{"destination": dest, "bytes": written, "ack": true}, started, s.now(), err)
+	return err
+}
+
+// VolumeRestore extracts a snapshot back into a volume (ADR-0020). It is
+// destructive (it overwrites the volume's contents), so ack must be true; it is
+// observe-mode-guarded, recorded, and audited.
+func (s *Service) VolumeRestore(ctx context.Context, hostID, volume, src, helperImage string, ack bool) error {
+	if !ack {
+		return fmt.Errorf("%w: %s", ErrConfirmationRequired, domain.OpVolumeRestore)
+	}
+	started := s.now()
+	err := s.mutator.Mutate(ctx, hostID, func(ctx context.Context, e engine.Engine) error {
+		return e.RestoreVolume(ctx, volume, helperImage, src)
+	})
+	s.record(ctx, hostID, domain.OpVolumeRestore, volume,
+		map[string]any{"source": src, "ack": true}, started, s.now(), err)
+	return err
+}
+
 // RemoveVolume removes a single named volume (never a bulk prune; ADR-0011).
 func (s *Service) RemoveVolume(ctx context.Context, hostID, name string, ack bool) error {
 	if !ack {
@@ -357,6 +394,10 @@ func auditAction(kind domain.OperationKind) domain.Action {
 		return domain.ActionComposeUp
 	case domain.OpComposeDown:
 		return domain.ActionComposeDown
+	case domain.OpVolumeSnapshot:
+		return domain.ActionVolumeSnapshot
+	case domain.OpVolumeRestore:
+		return domain.ActionVolumeRestore
 	default:
 		return domain.Action(kind)
 	}

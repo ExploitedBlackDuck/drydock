@@ -7,6 +7,14 @@
 schema = 1
 api_version = "1.51"
 
+# The volume-snapshot helper image, pinned by digest (ADR-0020, §7.5). Drydock
+# prefers an image already present on the host and otherwise pulls this exact
+# digest as an audited, visible step, failing closed on an air-gapped host. A
+# minimal image that provides `tar`. NOTE: verify/refresh this digest through the
+# normal catalog-versioning process before a public release.
+[snapshot]
+helper_image = "busybox@sha256:023917ec6a886d0e8e15f28fb543515a5fcd8d938edb091e8147db4efed388ee"
+
 # --- Environment & credentials (secret-bearing) ---------------------------
 
 [[option]]

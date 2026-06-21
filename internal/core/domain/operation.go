@@ -21,6 +21,9 @@ const (
 
 	OpComposeUp   OperationKind = "compose.up"
 	OpComposeDown OperationKind = "compose.down"
+
+	OpVolumeSnapshot OperationKind = "volume.snapshot"
+	OpVolumeRestore  OperationKind = "volume.restore"
 )
 
 // Destructive reports whether the operation can lose data or in-flight work and
@@ -29,7 +32,7 @@ func (k OperationKind) Destructive() bool {
 	switch k {
 	case OpContainerRemove, OpContainerKill,
 		OpImagePrune, OpContainerPrune, OpBuildCachePrune, OpVolumeRemove,
-		OpComposeDown:
+		OpComposeDown, OpVolumeRestore:
 		return true
 	default:
 		return false

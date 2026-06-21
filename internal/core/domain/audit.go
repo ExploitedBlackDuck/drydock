@@ -33,6 +33,9 @@ const (
 
 	ActionComposeUp   Action = "compose.up"
 	ActionComposeDown Action = "compose.down"
+
+	ActionVolumeSnapshot Action = "volume.snapshot"
+	ActionVolumeRestore  Action = "volume.restore"
 )
 
 // AuditEntry is one record in the append-only, hash-chained audit log

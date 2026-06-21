@@ -8,6 +8,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Volume snapshots (Phase 2, P14, ADR-0020).** The Volumes view offers a
+  **Snapshot…** action: it previews the destination, estimated size, and
+  duration, then captures the volume to a `tar` file via a throwaway helper
+  container that mounts the volume **read-only** (argv, never a shell). It is
+  **never automatic and never a precondition for deletion** — an offered
+  safeguard. The helper is a **digest-pinned** image (in the catalog), preferred
+  if present and otherwise pulled, **failing closed on an air-gapped host**.
+  Because it starts a container, snapshot (and restore) are **observe-mode
+  blocked** and **audited**; the helper is always removed. The archive is
+  plaintext outside the sealed store — the UI says to protect it.
 - **Image provenance & staleness (Phase 2, P13, ADR-0019).** The Images view
   gains a provenance badge — **untagged**, **`:latest`** (ambiguous), or, after a
   check, **drifted** / **current** — and a per-image **check** action.

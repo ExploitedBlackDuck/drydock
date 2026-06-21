@@ -115,6 +115,11 @@ func (e *fakeEngine) RegistryDigest(context.Context, string) (string, error) {
 	return "", nil
 }
 
+func (e *fakeEngine) SnapshotVolume(context.Context, string, string, string) (int64, error) {
+	return 0, nil
+}
+func (e *fakeEngine) RestoreVolume(context.Context, string, string, string) error { return nil }
+
 func (e *fakeEngine) StreamEvents(context.Context, func(domain.EngineEvent)) error {
 	return nil
 }

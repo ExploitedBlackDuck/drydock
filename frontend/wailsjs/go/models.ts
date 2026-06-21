@@ -789,6 +789,25 @@ export namespace domain {
 	        this.InUse = source["InUse"];
 	    }
 	}
+	
+	export class VolumeSnapshotPreview {
+	    Volume: string;
+	    Destination: string;
+	    EstimatedBytes: number;
+	    EstimatedSecond: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new VolumeSnapshotPreview(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Volume = source["Volume"];
+	        this.Destination = source["Destination"];
+	        this.EstimatedBytes = source["EstimatedBytes"];
+	        this.EstimatedSecond = source["EstimatedSecond"];
+	    }
+	}
 
 }
 

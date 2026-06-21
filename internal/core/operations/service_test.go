@@ -21,6 +21,7 @@ type fakeEngine struct {
 	started, stopped, removed bool
 	composeUp                 bool
 	composeDownVolumes        *bool
+	snapshotted, restored     bool
 }
 
 func (e *fakeEngine) Info(context.Context) (domain.EngineInfo, error) {
@@ -79,6 +80,16 @@ func (e *fakeEngine) ComposeDown(_ context.Context, _ string, volumes bool) erro
 }
 
 func (e *fakeEngine) RegistryDigest(context.Context, string) (string, error) { return "", nil }
+
+func (e *fakeEngine) SnapshotVolume(_ context.Context, _, _, _ string) (int64, error) {
+	e.snapshotted = true
+	return 2048, nil
+}
+
+func (e *fakeEngine) RestoreVolume(_ context.Context, _, _, _ string) error {
+	e.restored = true
+	return nil
+}
 
 func (e *fakeEngine) StreamEvents(context.Context, func(domain.EngineEvent)) error {
 	return nil
@@ -301,6 +312,55 @@ func TestExecRedactsSecretEnvOnCapture(t *testing.T) {
 	// The secret value appears in no persisted row or audit detail.
 	assert.NotContains(t, fmt.Sprint(op.OptionSet), "hunter2")
 	assert.NotContains(t, fmt.Sprint(aud.records[0].Detail), "hunter2")
+}
+
+func TestVolumeSnapshotIsGuardedAndAudited(t *testing.T) {
+	svc, m, store, aud := newService(false)
+
+	// Without ack, nothing runs.
+	assert.ErrorIs(t, svc.VolumeSnapshot(context.Background(), "h1", "db", "/tmp/db.tar", "busybox@sha256:x", false),
+		operations.ErrConfirmationRequired)
+	assert.False(t, m.eng.snapshotted)
+
+	require.NoError(t, svc.VolumeSnapshot(context.Background(), "h1", "db", "/tmp/db.tar", "busybox@sha256:x", true))
+	assert.True(t, m.eng.snapshotted)
+	require.Len(t, store.ops, 1)
+	assert.Equal(t, domain.OpVolumeSnapshot, store.ops[0].Kind)
+	require.Len(t, aud.records, 1)
+	assert.Equal(t, domain.ActionVolumeSnapshot, aud.records[0].Action)
+}
+
+func TestVolumeSnapshotBlockedOnObserveMode(t *testing.T) {
+	svc, m, _, _ := newService(true) // observe-mode host
+
+	err := svc.VolumeSnapshot(context.Background(), "h1", "db", "/tmp/db.tar", "img", true)
+	assert.ErrorIs(t, err, domain.ErrObserveMode)
+	assert.False(t, m.eng.snapshotted, "starting a helper container is blocked on an observe-mode host")
+}
+
+func TestVolumeRestoreRequiresAckAndIsObserveBlocked(t *testing.T) {
+	// Restore is destructive and observe-blocked.
+	svc, m, _, aud := newService(false)
+	assert.ErrorIs(t, svc.VolumeRestore(context.Background(), "h1", "db", "/tmp/db.tar", "img", false),
+		operations.ErrConfirmationRequired)
+
+	require.NoError(t, svc.VolumeRestore(context.Background(), "h1", "db", "/tmp/db.tar", "img", true))
+	assert.True(t, m.eng.restored)
+	require.Len(t, aud.records, 1)
+	assert.Equal(t, domain.ActionVolumeRestore, aud.records[0].Action)
+
+	observed, mo, _, _ := newService(true)
+	assert.ErrorIs(t, observed.VolumeRestore(context.Background(), "h1", "db", "/tmp/db.tar", "img", true), domain.ErrObserveMode)
+	assert.False(t, mo.eng.restored)
+}
+
+func TestRemoveVolumeNeedsNoSnapshot(t *testing.T) {
+	// A snapshot is never a precondition for deletion (ADR-0020): RemoveVolume
+	// succeeds with only its own acknowledgement, no snapshot taken.
+	svc, m, _, _ := newService(false)
+	require.NoError(t, svc.RemoveVolume(context.Background(), "h1", "db", true))
+	assert.True(t, m.eng.removed)
+	assert.False(t, m.eng.snapshotted, "deletion does not require or trigger a snapshot")
 }
 
 func TestObserveModeRejectsAndIsRecorded(t *testing.T) {

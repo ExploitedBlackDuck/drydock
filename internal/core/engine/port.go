@@ -123,6 +123,17 @@ type Engine interface {
 	// (compose `down -v`), which the caller must have acknowledged (§7.5).
 	ComposeDown(ctx context.Context, project string, volumes bool) error
 
+	// SnapshotVolume streams a read-only tar of the volume's contents to the file
+	// dest, via a throwaway helper container that mounts the volume read-only and
+	// runs `tar` (argv, never a shell — ADR-0004/0020). The helper image is
+	// digest-pinned; it is preferred if already present and otherwise pulled,
+	// failing closed on an air-gapped host. The helper is always removed, even on
+	// cancellation. Returns the number of bytes written.
+	SnapshotVolume(ctx context.Context, volume, helperImage, dest string) (int64, error)
+	// RestoreVolume extracts the tar at src into the volume (read-write) via a
+	// throwaway helper container.
+	RestoreVolume(ctx context.Context, volume, helperImage, src string) error
+
 	// RegistryDigest returns the registry's current digest for an image reference,
 	// resolved through the daemon's distribution-inspect endpoint so it reflects
 	// the host's registry reachability and credentials, not the desktop's

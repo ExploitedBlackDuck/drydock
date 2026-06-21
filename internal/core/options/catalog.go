@@ -59,6 +59,9 @@ type catalogFile struct {
 	Schema     int      `toml:"schema"`
 	APIVersion string   `toml:"api_version"`
 	Options    []Option `toml:"option"`
+	Snapshot   struct {
+		HelperImage string `toml:"helper_image"`
+	} `toml:"snapshot"`
 }
 
 // Catalog is the typed, validated set of options for one engine API version.
@@ -66,7 +69,12 @@ type Catalog struct {
 	SchemaVersion int
 	APIVersion    string
 	byName        map[string]Option
+	helperImage   string
 }
+
+// SnapshotHelperImage is the digest-pinned helper image for volume snapshots
+// (ADR-0020).
+func (c *Catalog) SnapshotHelperImage() string { return c.helperImage }
 
 // LoadCatalog parses the embedded catalog file (e.g. "docker@1.51.toml").
 func LoadCatalog(name string) (*Catalog, error) {
@@ -88,7 +96,12 @@ func LoadCatalog(name string) (*Catalog, error) {
 		}
 		byName[opt.Name] = opt
 	}
-	return &Catalog{SchemaVersion: cf.Schema, APIVersion: cf.APIVersion, byName: byName}, nil
+	return &Catalog{
+		SchemaVersion: cf.Schema,
+		APIVersion:    cf.APIVersion,
+		byName:        byName,
+		helperImage:   cf.Snapshot.HelperImage,
+	}, nil
 }
 
 // DefaultCatalog loads the catalog Drydock ships with. The asset is embedded, so

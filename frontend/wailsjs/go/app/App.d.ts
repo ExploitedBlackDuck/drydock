@@ -54,6 +54,8 @@ export function ListVolumes(arg1:string):Promise<Array<domain.Volume>>;
 
 export function OperationHistory(arg1:string,arg2:string,arg3:boolean,arg4:number):Promise<Array<domain.Operation>>;
 
+export function PreviewVolumeSnapshot(arg1:string,arg2:string):Promise<domain.VolumeSnapshotPreview>;
+
 export function PruneBuildCache(arg1:string,arg2:boolean):Promise<number>;
 
 export function PruneContainers(arg1:string,arg2:boolean):Promise<number>;
@@ -70,9 +72,13 @@ export function ResizeExec(arg1:string,arg2:number,arg3:number):Promise<void>;
 
 export function RestartContainer(arg1:string,arg2:string):Promise<void>;
 
+export function RestoreVolume(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function SendExecInput(arg1:string,arg2:string):Promise<void>;
 
 export function SetObserveMode(arg1:string,arg2:boolean):Promise<void>;
+
+export function SnapshotVolume(arg1:string,arg2:string):Promise<string>;
 
 export function StartContainer(arg1:string,arg2:string):Promise<void>;
 
