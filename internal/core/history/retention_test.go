@@ -12,9 +12,10 @@ import (
 )
 
 type fakePruner struct {
-	cutoff  time.Time
-	called  bool
-	removed int64
+	cutoff   time.Time
+	called   bool
+	removed  int64
+	timeline int64
 }
 
 func (p *fakePruner) PruneResourceSamples(_ context.Context, before time.Time) (int64, error) {
@@ -23,8 +24,13 @@ func (p *fakePruner) PruneResourceSamples(_ context.Context, before time.Time) (
 	return p.removed, nil
 }
 
+func (p *fakePruner) PruneTimelineEntries(_ context.Context, before time.Time) (int64, error) {
+	p.cutoff = before
+	return p.timeline, nil
+}
+
 func TestSweepPrunesByRetentionWindow(t *testing.T) {
-	pruner := &fakePruner{removed: 7}
+	pruner := &fakePruner{removed: 7, timeline: 3}
 	r := history.NewRetention(pruner, 24*time.Hour)
 	now := time.Unix(1_700_000_000, 0).UTC()
 
@@ -32,6 +38,6 @@ func TestSweepPrunesByRetentionWindow(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, pruner.called)
-	assert.Equal(t, int64(7), removed)
+	assert.Equal(t, int64(10), removed, "resource samples + timeline entries")
 	assert.Equal(t, now.Add(-24*time.Hour), pruner.cutoff, "cutoff is now minus the retention window")
 }

@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Host timeline (Phase 2, P12, ADR-0018).** A new per-host **Timeline** view
+  interleaves mapped engine events (`die` with its exit code, `oom`,
+  `health_status`) with references to Drydock's audit log — "what happened on
+  this host, and who." The hash-chained **audit log is never weakened**: engine
+  events are untrusted input persisted to a separate `timeline_entries` table
+  (rolling retention), never into the chain (proven by a separateness test).
+  Swarm-scope events are filtered to keep the view host-local; host-vs-desktop
+  **clock skew** and **reconnect gaps** are surfaced, not hidden. The event
+  mapper now captures exit code, health status, and scope.
 - **Exposure map (Phase 2, P11, ADR-0017).** A new per-host **Exposure** view
   answers "what have I exposed?": `internal/core/expose.Compute` classifies each
   published port by reach — **loopback** (`127.0.0.0/8`/`::1`), **private/LAN**,

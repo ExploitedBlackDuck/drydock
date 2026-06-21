@@ -9,6 +9,7 @@ export const ViewId = {
   Volumes: 'volumes',
   Networks: 'networks',
   Exposure: 'exposure',
+  Timeline: 'timeline',
   Disk: 'disk',
   History: 'history',
   Audit: 'audit',
@@ -23,6 +24,7 @@ export type IconName =
   | 'volumes'
   | 'networks'
   | 'exposure'
+  | 'timeline'
   | 'disk'
   | 'history'
   | 'audit';
@@ -41,6 +43,7 @@ export const VIEWS: readonly ViewMeta[] = [
   { id: ViewId.Volumes, label: 'Volumes', icon: 'volumes' },
   { id: ViewId.Networks, label: 'Networks', icon: 'networks' },
   { id: ViewId.Exposure, label: 'Exposure', icon: 'exposure' },
+  { id: ViewId.Timeline, label: 'Timeline', icon: 'timeline' },
   { id: ViewId.Disk, label: 'Disk', icon: 'disk' },
   { id: ViewId.History, label: 'History', icon: 'history' },
   { id: ViewId.Audit, label: 'Audit', icon: 'audit' },

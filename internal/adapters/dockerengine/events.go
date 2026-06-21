@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,13 +42,27 @@ func mapEvent(m events.Message) domain.EngineEvent {
 	if m.TimeNano == 0 {
 		at = time.Unix(m.Time, 0).UTC()
 	}
-	return domain.EngineEvent{
+	event := domain.EngineEvent{
 		Type:          string(m.Type),
 		Action:        baseAction(string(m.Action)),
 		ContainerID:   m.Actor.ID,
 		ContainerName: m.Actor.Attributes["name"],
+		Scope:         string(m.Scope),
 		At:            at,
 	}
+	// A die event carries the exit code in its actor attributes (§7.12.4).
+	if code, ok := m.Actor.Attributes["exitCode"]; ok {
+		if n, err := strconv.Atoi(code); err == nil {
+			event.ExitCode = &n
+		}
+	}
+	// A health_status event's status is the suffix after the colon.
+	if event.Action == domain.EventActionHealth {
+		if _, status, found := strings.Cut(string(m.Action), ":"); found {
+			event.HealthStatus = strings.TrimSpace(status)
+		}
+	}
+	return event
 }
 
 func baseAction(action string) string {

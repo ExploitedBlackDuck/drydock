@@ -26,6 +26,8 @@ export function DisconnectHost(arg1:string):Promise<void>;
 
 export function ExportJournal():Promise<string>;
 
+export function GetHostTimeline(arg1:string,arg2:number):Promise<app.HostTimelineDTO>;
+
 export function GetPruneImpact(arg1:string):Promise<domain.PruneImpact>;
 
 export function GetResourceHistory(arg1:string,arg2:string,arg3:number):Promise<Array<domain.ResourceSample>>;

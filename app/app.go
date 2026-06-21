@@ -8,6 +8,7 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/drydock/drydock/internal/core/hosts"
 	"github.com/drydock/drydock/internal/core/journal"
@@ -26,7 +27,13 @@ type App struct {
 	journal  *journal.Service
 	samples  SampleStore
 	backup   BackupStore
+	timeline TimelineStore
 	ctx      context.Context
+
+	// skewMu guards the latest observed host-vs-desktop clock skew per host,
+	// surfaced on the timeline (ADR-0018).
+	skewMu   sync.Mutex
+	hostSkew map[string]time.Duration
 
 	// streams tracks live log/stats streams so they can be cancelled.
 	streamMu sync.Mutex
@@ -40,7 +47,7 @@ type App struct {
 
 // New constructs the binding layer with its injected dependencies. Nothing is
 // constructed globally (PROJECT-BOOK §2.3); main is the composition root.
-func New(log *slog.Logger, runtime shell.Runtime, version string, registry *hosts.Registry, ops *operations.Service, jrnl *journal.Service, samples SampleStore, backup BackupStore) *App {
+func New(log *slog.Logger, runtime shell.Runtime, version string, registry *hosts.Registry, ops *operations.Service, jrnl *journal.Service, samples SampleStore, backup BackupStore, timeline TimelineStore) *App {
 	return &App{
 		log:      log,
 		runtime:  runtime,
@@ -50,8 +57,10 @@ func New(log *slog.Logger, runtime shell.Runtime, version string, registry *host
 		journal:  jrnl,
 		samples:  samples,
 		backup:   backup,
+		timeline: timeline,
 		streams:  map[string]context.CancelFunc{},
 		execs:    map[string]*execSession{},
+		hostSkew: map[string]time.Duration{},
 	}
 }
 

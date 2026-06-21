@@ -1,6 +1,7 @@
-// Package history enforces the rolling-retention policy for resource samples
-// (PROJECT-BOOK §7.6/§7.7): live state is never persisted indefinitely; samples
-// older than the retention window are pruned.
+// Package history enforces the rolling-retention policy for live state
+// (PROJECT-BOOK §7.6/§7.7/§7.12.4): resource samples and host-timeline entries
+// are never persisted indefinitely; rows older than the retention window are
+// pruned.
 package history
 
 import (
@@ -9,9 +10,11 @@ import (
 	"time"
 )
 
-// Pruner deletes resource samples older than a cutoff (satisfied by the store).
+// Pruner deletes rolling-history rows older than a cutoff (satisfied by the
+// store) — resource samples and timeline entries share the retention window.
 type Pruner interface {
 	PruneResourceSamples(ctx context.Context, before time.Time) (int64, error)
+	PruneTimelineEntries(ctx context.Context, before time.Time) (int64, error)
 }
 
 // Retention sweeps samples outside the configured window.
@@ -25,13 +28,19 @@ func NewRetention(pruner Pruner, window time.Duration) *Retention {
 	return &Retention{pruner: pruner, window: window}
 }
 
-// Sweep deletes samples older than now-window, returning the number removed.
+// Sweep deletes resource samples and timeline entries older than now-window,
+// returning the total number removed.
 func (r *Retention) Sweep(ctx context.Context, now time.Time) (int64, error) {
-	n, err := r.pruner.PruneResourceSamples(ctx, now.Add(-r.window))
+	cutoff := now.Add(-r.window)
+	samples, err := r.pruner.PruneResourceSamples(ctx, cutoff)
 	if err != nil {
 		return 0, fmt.Errorf("sweeping resource history: %w", err)
 	}
-	return n, nil
+	timeline, err := r.pruner.PruneTimelineEntries(ctx, cutoff)
+	if err != nil {
+		return samples, fmt.Errorf("sweeping timeline: %w", err)
+	}
+	return samples + timeline, nil
 }
 
 // Run sweeps immediately and then every interval until ctx is cancelled. It owns

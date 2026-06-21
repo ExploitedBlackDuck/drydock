@@ -28,8 +28,8 @@ const (
 // until the window closes. assets is the embedded, built frontend; registry is
 // the multi-host registry, ops performs guarded mutations, and samples persists
 // resource history.
-func Run(assets fs.FS, log *slog.Logger, registry *hosts.Registry, ops *operations.Service, jrnl *journal.Service, samples SampleStore, backup BackupStore, version string) error {
-	application := New(log, shell.WailsRuntime{}, version, registry, ops, jrnl, samples, backup)
+func Run(assets fs.FS, log *slog.Logger, registry *hosts.Registry, ops *operations.Service, jrnl *journal.Service, samples SampleStore, backup BackupStore, timeline TimelineStore, version string) error {
+	application := New(log, shell.WailsRuntime{}, version, registry, ops, jrnl, samples, backup, timeline)
 
 	err := wails.Run(&options.App{
 		Title:     "Drydock",

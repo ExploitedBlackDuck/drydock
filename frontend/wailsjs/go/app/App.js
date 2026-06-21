@@ -46,6 +46,10 @@ export function ExportJournal() {
   return window['go']['app']['App']['ExportJournal']();
 }
 
+export function GetHostTimeline(arg1, arg2) {
+  return window['go']['app']['App']['GetHostTimeline'](arg1, arg2);
+}
+
 export function GetPruneImpact(arg1) {
   return window['go']['app']['App']['GetPruneImpact'](arg1);
 }

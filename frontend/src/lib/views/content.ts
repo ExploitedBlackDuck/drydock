@@ -57,6 +57,14 @@ export const VIEW_CONTENT: Record<ViewId, ViewContent> = {
     emptyMessage:
       'No container on this host publishes a port, and none use host networking.',
   },
+  [ViewId.Timeline]: {
+    description:
+      'Engine events interleaved with the audit log — what happened on this host, and who.',
+    icon: 'timeline',
+    emptyTitle: 'No timeline yet',
+    emptyMessage:
+      'Engine events and audited actions for this host appear here as they occur.',
+  },
   [ViewId.Disk]: {
     description:
       'system df made legible — reclaimable space by category, build cache first-class.',

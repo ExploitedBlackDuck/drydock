@@ -2,7 +2,8 @@
   {
     "Type": "container",
     "Action": "die",
-    "Actor": { "ID": "3f1a9c2b7e4d", "Attributes": { "name": "web", "exitCode": "1" } },
+    "Actor": { "ID": "3f1a9c2b7e4d", "Attributes": { "name": "web", "exitCode": "137" } },
+    "scope": "local",
     "time": 1718800000,
     "timeNano": 1718800000000000000
   },
@@ -10,7 +11,16 @@
     "Type": "container",
     "Action": "health_status: unhealthy",
     "Actor": { "ID": "3f1a9c2b7e4d", "Attributes": { "name": "web" } },
+    "scope": "local",
     "time": 1718800001,
     "timeNano": 1718800001000000000
+  },
+  {
+    "Type": "service",
+    "Action": "update",
+    "Actor": { "ID": "svc123", "Attributes": { "name": "swarm-svc" } },
+    "scope": "swarm",
+    "time": 1718800002,
+    "timeNano": 1718800002000000000
   }
 ]

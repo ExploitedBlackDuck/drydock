@@ -79,6 +79,7 @@ func (a *App) superviseEvents(ctx context.Context, key, hostID string) {
 			//nolint:contextcheck // the sink emits on the app-lifetime event bus, not ctx
 			_ = eng.StreamEvents(ctx, func(e domain.EngineEvent) {
 				a.runtime.EmitEvent(a.baseCtx(), key, e.Action)
+				a.recordEngineEvent(hostID, e) // persist to the host timeline (ADR-0018)
 				if alert, looping := detector.Observe(e); looping {
 					a.runtime.EmitEvent(a.baseCtx(), "restart-loop:"+hostID, RestartLoopAlert{
 						HostID:        hostID,
@@ -91,7 +92,10 @@ func (a *App) superviseEvents(ctx context.Context, key, hostID string) {
 			if ctx.Err() != nil {
 				return
 			}
-			// The stream returned without a cancel: the connection dropped.
+			// The stream returned without a cancel: the connection dropped. Mark
+			// the gap on the timeline, then tell the UI to resync.
+			//nolint:contextcheck // persists on the app-lifetime context, not the stream ctx
+			a.recordTimelineGap(hostID)
 			resync("stream-interrupted")
 		}
 
