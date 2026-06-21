@@ -75,10 +75,34 @@ func (s *Store) Host(ctx context.Context, id string) (domain.Host, error) {
 	return h, nil
 }
 
-// DeleteHost removes a host profile; removing an absent host is not an error.
+// DeleteHost removes a host profile and its recorded data; removing an absent
+// host is not an error. The host's operations, resource samples, and timeline
+// are deleted (children before parents, in one transaction) so removal succeeds
+// even with history, which the operations/resource_samples foreign keys would
+// otherwise restrict. The hash-chained audit log has no foreign key and is
+// deliberately left intact — a host's audited actions stay durable after the
+// profile is removed (ADR-0010).
 func (s *Store) DeleteHost(ctx context.Context, id string) error {
-	if _, err := s.db.ExecContext(ctx, `DELETE FROM hosts WHERE id = ?`, id); err != nil {
-		return fmt.Errorf("deleting host %q: %w", id, err)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("removing host %q: %w", id, err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	statements := []string{
+		`DELETE FROM prune_impacts WHERE operation_id IN (SELECT id FROM operations WHERE host_id = ?)`,
+		`DELETE FROM operations WHERE host_id = ?`,
+		`DELETE FROM resource_samples WHERE host_id = ?`,
+		`DELETE FROM timeline_entries WHERE host_id = ?`,
+		`DELETE FROM hosts WHERE id = ?`,
+	}
+	for _, stmt := range statements {
+		if _, err := tx.ExecContext(ctx, stmt, id); err != nil {
+			return fmt.Errorf("removing host %q data: %w", id, err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing host %q removal: %w", id, err)
 	}
 	return nil
 }

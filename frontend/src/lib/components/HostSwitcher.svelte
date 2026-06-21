@@ -8,6 +8,28 @@
   import { hosts } from '../stores/hosts';
 
   const dispatch = createEventDispatcher<{ addhost: void }>();
+
+  let removing = '';
+
+  // The implicit local engine is not a removable profile — it reappears on
+  // launch (PROJECT-BOOK §7.11.1).
+  const LOCAL = 'local';
+
+  async function onRemove(id: string, name: string) {
+    if (
+      !window.confirm(
+        `Remove host "${name}"?\n\nIts connection profile and recorded history ` +
+          `(operations, samples, timeline) are deleted. The audit log is preserved.`,
+      )
+    )
+      return;
+    removing = id;
+    try {
+      await hosts.remove(id);
+    } finally {
+      removing = '';
+    }
+  }
 </script>
 
 <div class="switcher">
@@ -18,7 +40,7 @@
   {:else}
     <ul>
       {#each $hosts.hosts as host (host.id)}
-        <li>
+        <li class="row" class:active={host.id === $hosts.activeId}>
           <button
             class="host"
             class:active={host.id === $hosts.activeId}
@@ -28,6 +50,15 @@
             <StatusDot status={host.status} />
             <span class="name">{host.name}</span>
           </button>
+          {#if host.id !== LOCAL}
+            <button
+              class="remove"
+              title="Remove host"
+              aria-label={`Remove host ${host.name}`}
+              disabled={removing === host.id}
+              on:click={() => onRemove(host.id, host.name)}>✕</button
+            >
+          {/if}
         </li>
       {/each}
     </ul>
@@ -71,11 +102,24 @@
     gap: 2px;
   }
 
+  .row {
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+  }
+  .row:hover {
+    background: var(--color-surface-hover);
+  }
+  .row.active {
+    background: var(--color-accent-soft);
+  }
+
   .host {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     padding: 7px var(--space-2);
     border: none;
     border-radius: var(--radius-sm);
@@ -85,13 +129,24 @@
     text-align: left;
   }
 
-  .host:hover {
-    background: var(--color-surface-hover);
+  .remove {
+    flex: none;
+    padding: 4px 8px;
+    margin-right: 2px;
+    border: none;
+    background: transparent;
+    color: var(--color-text-faint);
+    font-size: var(--text-xs);
+    opacity: 0;
   }
-
-  .host.active {
-    background: var(--color-accent-soft);
-    color: var(--color-text);
+  .row:hover .remove {
+    opacity: 1;
+  }
+  .remove:hover:not(:disabled) {
+    color: var(--color-danger);
+  }
+  .remove:disabled {
+    opacity: 0.4;
   }
 
   .name {
