@@ -8,16 +8,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **Compose plan diff engine (Phase 2, P10, ADR-0016).** `internal/core/compose.Plan`
-  classifies what `compose up` would do — per service create/recreate/start/noop
-  and per network/volume create — by diffing the desired project against observed
-  engine state via the Compose config hash. Recreations that interrupt a running
-  container or drop an anonymous volume mark the plan **destructive** (routing to
-  the §7.4 acknowledgement path); a config hash that can't be compared **degrades**
-  to a labelled coarse image diff; and an inaccessible project source yields an
-  explicit **source-unavailable** plan that is labelled, never a false "no
-  changes." Pure and table-tested. (compose-go parsing, the apply path, and the
-  GUI panel follow.)
+- **Compose plan — `up` is preview-and-confirm (Phase 2, P10, ADR-0016).** `up`
+  stops being a black box: Drydock previews what it would do before applying.
+  - `internal/core/compose.Plan` classifies each service create/recreate/start/
+    noop and each network/volume create by diffing the desired project against
+    observed state. Recreations that interrupt a running container or drop an
+    anonymous volume mark the plan **destructive** (→ §7.4 acknowledgement); an
+    uncomparable config hash **degrades** to a labelled coarse image diff; and an
+    inaccessible source yields an explicit **source-unavailable** plan, never a
+    false "no changes." Pure and table-tested.
+  - `composeparse` parses the project's compose files (pinned compose-go, local
+    files only) into the desired stack; `ComputeComposePlan` builds the observed
+    state from container labels and returns the plan.
+  - `operations.ComposeApply` requires acknowledgement for a destructive plan and
+    records its impact + ack to the audit log (tested).
+  - GUI: selecting **Up** opens a `ComposePlanPanel` showing the per-service and
+    per-resource changes, with destructive elements gated and degraded/source-
+    unavailable plans clearly labelled — the operator confirms the plan, not raw
+    `up`.
 
 - **Log-stream backpressure (ADR-0021).** A bounded, coalescing buffer
   (`internal/core/stream.LineBuffer`) sits between the engine log reader and the

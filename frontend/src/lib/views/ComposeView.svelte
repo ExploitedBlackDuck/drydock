@@ -7,9 +7,14 @@
   import ResourceView from './ResourceView.svelte';
   import StateBadge from '../components/StateBadge.svelte';
   import ContainerDetail from '../components/ContainerDetail.svelte';
+  import ComposePlanPanel from '../components/ComposePlanPanel.svelte';
   import { stacks } from '../stores/objects';
-  import type { Stack } from '../api/compose';
-  import { composeDown, composeUp } from '../api/compose';
+  import type { Stack, ComposePlan } from '../api/compose';
+  import {
+    applyComposePlan,
+    composeDown,
+    computeComposePlan,
+  } from '../api/compose';
   import type { Container } from '../api/engine';
 
   export let hostId: string;
@@ -18,6 +23,12 @@
   let selected: Container | null = null;
   let busy = '';
   let actionError: string | null = null;
+
+  // The compose plan flow (ADR-0016): "Up" previews the plan first; the operator
+  // confirms the classified changes, then it is applied.
+  let plan: ComposePlan | null = null;
+  let planProject = '';
+  let planBusy = false;
 
   // Map a stack's aggregate state to a tone; "partial" is the one to notice.
   const stackTone: Record<string, 'ok' | 'warn' | 'neutral'> = {
@@ -39,8 +50,32 @@
     }
   }
 
-  function onUp(s: Stack) {
-    void act(s.Project, () => composeUp(hostId, s.Project));
+  async function onUp(s: Stack) {
+    busy = s.Project;
+    actionError = null;
+    try {
+      plan = await computeComposePlan(hostId, s.Project);
+      planProject = s.Project;
+    } catch (err) {
+      actionError = err instanceof Error ? err.message : String(err);
+    } finally {
+      busy = '';
+    }
+  }
+
+  async function confirmPlan() {
+    if (!plan) return;
+    planBusy = true;
+    actionError = null;
+    try {
+      await applyComposePlan(hostId, planProject, plan.Destructive);
+      plan = null;
+      await stacks.load(hostId);
+    } catch (err) {
+      actionError = err instanceof Error ? err.message : String(err);
+    } finally {
+      planBusy = false;
+    }
   }
 
   function onDown(s: Stack) {
@@ -166,6 +201,15 @@
     </div>
   {/if}
 </div>
+
+{#if plan}
+  <ComposePlanPanel
+    {plan}
+    busy={planBusy}
+    on:confirm={confirmPlan}
+    on:cancel={() => (plan = null)}
+  />
+{/if}
 
 <style>
   .compose {

@@ -6,6 +6,10 @@ export function AddHost(arg1) {
   return window['go']['app']['App']['AddHost'](arg1);
 }
 
+export function ApplyComposePlan(arg1, arg2, arg3) {
+  return window['go']['app']['App']['ApplyComposePlan'](arg1, arg2, arg3);
+}
+
 export function AuditTrail() {
   return window['go']['app']['App']['AuditTrail']();
 }
@@ -24,6 +28,10 @@ export function ComposeDown(arg1, arg2, arg3, arg4) {
 
 export function ComposeUp(arg1, arg2) {
   return window['go']['app']['App']['ComposeUp'](arg1, arg2);
+}
+
+export function ComputeComposePlan(arg1, arg2) {
+  return window['go']['app']['App']['ComputeComposePlan'](arg1, arg2);
 }
 
 export function ConnectHost(arg1) {

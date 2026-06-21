@@ -34,7 +34,12 @@ type Container struct {
 	Ports          []Port
 	ComposeProject string
 	ComposeService string
-	Created        time.Time
+	// Compose plan inputs (ADR-0016): the per-service config hash and where the
+	// project's source lives, read from the container's Compose labels.
+	ComposeConfigHash  string
+	ComposeConfigFiles string // comma-separated paths, as Compose stamps them
+	ComposeWorkingDir  string
+	Created            time.Time
 }
 
 // Image is an image summary (PROJECT-BOOK §7.1).

@@ -219,6 +219,42 @@ func TestComposeUpStartsStackWithoutAck(t *testing.T) {
 	assert.Equal(t, domain.ActionComposeUp, aud.records[0].Action)
 }
 
+func TestComposeApplyDestructivePlanRequiresAck(t *testing.T) {
+	svc, m, store, _ := newService(false)
+	plan := domain.ComposePlan{Project: "blog", Destructive: true}
+
+	err := svc.ComposeApply(context.Background(), "h1", "blog", plan, false)
+	assert.ErrorIs(t, err, operations.ErrConfirmationRequired)
+	assert.False(t, m.called, "a destructive plan is not applied without acknowledgement")
+	assert.Empty(t, store.ops)
+}
+
+func TestComposeApplyWithAckRecordsImpact(t *testing.T) {
+	svc, m, store, aud := newService(false)
+	plan := domain.ComposePlan{
+		Project:     "blog",
+		Destructive: true,
+		Services:    []domain.ServiceChange{{Service: "web", Action: domain.ServiceRecreate, DropsAnonymousVolumes: true}},
+	}
+
+	require.NoError(t, svc.ComposeApply(context.Background(), "h1", "blog", plan, true))
+	assert.True(t, m.eng.composeUp, "the apply ran")
+	require.Len(t, store.ops, 1)
+	assert.Equal(t, domain.OpComposeUp, store.ops[0].Kind)
+	assert.Equal(t, true, store.ops[0].OptionSet["destructive"])
+	require.Len(t, aud.records, 1)
+	assert.Equal(t, true, aud.records[0].Detail["destructive"])
+	assert.Equal(t, true, aud.records[0].Detail["ack"])
+}
+
+func TestComposeApplyNonDestructiveNeedsNoAck(t *testing.T) {
+	svc, m, _, _ := newService(false)
+	plan := domain.ComposePlan{Project: "blog", Destructive: false}
+
+	require.NoError(t, svc.ComposeApply(context.Background(), "h1", "blog", plan, false))
+	assert.True(t, m.eng.composeUp, "a clean plan applies without acknowledgement")
+}
+
 func TestComposeDownRequiresAcknowledgement(t *testing.T) {
 	svc, m, store, _ := newService(false)
 

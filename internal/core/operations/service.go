@@ -137,6 +137,28 @@ func (s *Service) ComposeUp(ctx context.Context, hostID, project string) error {
 		func(ctx context.Context, e engine.Engine) error { return e.ComposeUp(ctx, project) })
 }
 
+// ComposeApply brings a Compose stack up after the operator confirmed its plan
+// (ADR-0016, §7.12.2). A destructive plan — one that interrupts a running
+// container, drops an anonymous volume, or removes a resource — requires
+// acknowledgement; the confirmed plan's impact (destructive/degraded flags and
+// change count) is recorded and audited.
+func (s *Service) ComposeApply(ctx context.Context, hostID, project string, plan domain.ComposePlan, ack bool) error {
+	if plan.Destructive && !ack {
+		return fmt.Errorf("%w: %s", ErrConfirmationRequired, domain.OpComposeUp)
+	}
+	optionSet := map[string]any{
+		"project":     project,
+		"destructive": plan.Destructive,
+		"degraded":    plan.Degraded,
+		"changes":     len(plan.Services),
+		"ack":         ack,
+	}
+	// ack is enforced above against the plan; run's own gate is a no-op here
+	// since compose.up is not classified destructive on its own.
+	return s.run(ctx, hostID, domain.OpComposeUp, project, optionSet, true,
+		func(ctx context.Context, e engine.Engine) error { return e.ComposeUp(ctx, project) })
+}
+
 // ComposeDown takes a Compose stack down. It is destructive (it removes the
 // stack's containers), so ack must be true; when volumes is true it also removes
 // the stack's named volumes — compose `down -v`, which the impact-rule engine

@@ -47,11 +47,16 @@ the pinned Compose library and **re-verified on every Compose upgrade** — the 
 derivation is out-of-spec and has changed between versions — and remote stacks
 without locally-accessible source get the honest degraded plan, not a precise one.
 
-**Implementation status.** The pure plan classifier (`internal/core/compose.Plan`)
-and the `domain.ComposePlan` types are implemented and table-tested against
-fixtures, including the config-hash-mismatch → `Degraded` case, the
-source-unavailable degraded case (never a false no-change), and the
-anonymous-volume-dropping recreate → `Destructive` case. The `compose-go` parsing
-adapter (desired state from compose files), the engine apply path, the
-acknowledgement-and-audit wiring, and the GUI `ComposePlanPanel` are the
-remaining P10 work.
+**Implementation status.** Implemented end to end: the pure plan classifier
+(`internal/core/compose.Plan`) and `domain.ComposePlan` types (table-tested,
+incl. config-hash-mismatch → `Degraded`, source-unavailable, and
+anonymous-volume-dropping recreate → `Destructive`); the `compose-go` parser
+(`composeparse`, fixture-tested) building the desired stack from locally-readable
+compose files; the `ComputeComposePlan` binding (observed state from container
+labels + desired state when the source is local, else source-unavailable); and
+`operations.ComposeApply`, which requires acknowledgement for a destructive plan
+and records its impact + ack to the audit log (tested). The GUI previews the plan
+in a `ComposePlanPanel` before applying. Remaining nuance: the apply currently
+runs the SDK-based `up` (P7) — full compose-v2-driven recreation of changed
+services is a follow-up; the *preview, gate, and audit* — the safety property —
+are in place.

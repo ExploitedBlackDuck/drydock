@@ -96,6 +96,86 @@ export namespace domain {
 		    return a;
 		}
 	}
+	export class ResourceChange {
+	    Name: string;
+	    Kind: string;
+	    Action: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ResourceChange(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Name = source["Name"];
+	        this.Kind = source["Kind"];
+	        this.Action = source["Action"];
+	    }
+	}
+	export class ServiceChange {
+	    Service: string;
+	    Action: string;
+	    Reasons: string[];
+	    DropsAnonymousVolumes: boolean;
+	    InterruptsRunning: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new ServiceChange(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Service = source["Service"];
+	        this.Action = source["Action"];
+	        this.Reasons = source["Reasons"];
+	        this.DropsAnonymousVolumes = source["DropsAnonymousVolumes"];
+	        this.InterruptsRunning = source["InterruptsRunning"];
+	    }
+	}
+	export class ComposePlan {
+	    Project: string;
+	    HostRef: string;
+	    Services: ServiceChange[];
+	    Networks: ResourceChange[];
+	    Volumes: ResourceChange[];
+	    Degraded: boolean;
+	    Destructive: boolean;
+	    Notes: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ComposePlan(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Project = source["Project"];
+	        this.HostRef = source["HostRef"];
+	        this.Services = this.convertValues(source["Services"], ServiceChange);
+	        this.Networks = this.convertValues(source["Networks"], ResourceChange);
+	        this.Volumes = this.convertValues(source["Volumes"], ResourceChange);
+	        this.Degraded = source["Degraded"];
+	        this.Destructive = source["Destructive"];
+	        this.Notes = source["Notes"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Port {
 	    IP: string;
 	    PrivatePort: number;
@@ -124,6 +204,9 @@ export namespace domain {
 	    Ports: Port[];
 	    ComposeProject: string;
 	    ComposeService: string;
+	    ComposeConfigHash: string;
+	    ComposeConfigFiles: string;
+	    ComposeWorkingDir: string;
 	    // Go type: time
 	    Created: any;
 	
@@ -142,6 +225,9 @@ export namespace domain {
 	        this.Ports = this.convertValues(source["Ports"], Port);
 	        this.ComposeProject = source["ComposeProject"];
 	        this.ComposeService = source["ComposeService"];
+	        this.ComposeConfigHash = source["ComposeConfigHash"];
+	        this.ComposeConfigFiles = source["ComposeConfigFiles"];
+	        this.ComposeWorkingDir = source["ComposeWorkingDir"];
 	        this.Created = this.convertValues(source["Created"], null);
 	    }
 	
@@ -345,6 +431,7 @@ export namespace domain {
 		    return a;
 		}
 	}
+	
 	export class ResourceSample {
 	    HostRef: string;
 	    ContainerID: string;
@@ -392,6 +479,7 @@ export namespace domain {
 		    return a;
 		}
 	}
+	
 	export class StackService {
 	    Name: string;
 	    Containers: Container[];
