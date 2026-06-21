@@ -25,6 +25,7 @@ type App struct {
 	ops      *operations.Service
 	journal  *journal.Service
 	samples  SampleStore
+	backup   BackupStore
 	ctx      context.Context
 
 	// streams tracks live log/stats streams so they can be cancelled.
@@ -39,7 +40,7 @@ type App struct {
 
 // New constructs the binding layer with its injected dependencies. Nothing is
 // constructed globally (PROJECT-BOOK §2.3); main is the composition root.
-func New(log *slog.Logger, runtime shell.Runtime, version string, registry *hosts.Registry, ops *operations.Service, jrnl *journal.Service, samples SampleStore) *App {
+func New(log *slog.Logger, runtime shell.Runtime, version string, registry *hosts.Registry, ops *operations.Service, jrnl *journal.Service, samples SampleStore, backup BackupStore) *App {
 	return &App{
 		log:      log,
 		runtime:  runtime,
@@ -48,6 +49,7 @@ func New(log *slog.Logger, runtime shell.Runtime, version string, registry *host
 		ops:      ops,
 		journal:  jrnl,
 		samples:  samples,
+		backup:   backup,
 		streams:  map[string]context.CancelFunc{},
 		execs:    map[string]*execSession{},
 	}

@@ -70,6 +70,48 @@ func TestOpenRejectsNewerSchema(t *testing.T) {
 
 	_, err = Open(ctx, path)
 	require.ErrorIs(t, err, ErrMigration)
+	require.ErrorIs(t, err, ErrSchemaNewer, "refusal carries the dedicated schema-newer code")
+}
+
+// TestBackupProducesConsistentSnapshot verifies the SQLite backup path (ADR-0024):
+// a VACUUM INTO snapshot opens as a valid database at the same schema version
+// with the written rows present, even while another writer is busy.
+func TestBackupProducesConsistentSnapshot(t *testing.T) {
+	ctx := context.Background()
+	store := tempStore(t)
+	seedLocalHost(t, store)
+
+	// A concurrent writer keeps appending audit rows during the backup.
+	key := []byte("drydock-store-test-audit-key-0123")
+	log := audit.New(store, nil, key, nil)
+	done := make(chan struct{})
+	go func() {
+		for i := 0; i < 50; i++ {
+			_, _ = log.Append(ctx, audit.Record{Action: domain.ActionContainerStart, Subject: "c"})
+		}
+		close(done)
+	}()
+
+	dest := filepath.Join(t.TempDir(), "snapshot.db")
+	got, err := store.Backup(ctx, dest)
+	require.NoError(t, err)
+	assert.Equal(t, dest, got)
+	<-done
+
+	// The snapshot opens cleanly and carries the seeded host.
+	backup, err := Open(ctx, dest)
+	require.NoError(t, err)
+	defer func() { _ = backup.Close() }()
+	version, err := backup.SchemaVersion(ctx)
+	require.NoError(t, err)
+	assert.Positive(t, version)
+	hosts, err := backup.Hosts(ctx)
+	require.NoError(t, err)
+	assert.NotEmpty(t, hosts, "the backup is a consistent, queryable database")
+
+	// A second backup to the same path is refused rather than clobbering.
+	_, err = store.Backup(ctx, dest)
+	assert.Error(t, err)
 }
 
 func TestSealedValueRoundTrip(t *testing.T) {

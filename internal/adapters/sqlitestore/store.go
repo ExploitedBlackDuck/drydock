@@ -7,8 +7,10 @@ package sqlitestore
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -17,8 +19,9 @@ import (
 // Store is a SQLite-backed implementation of the audit and secret-persistence
 // ports. Construct it with Open.
 type Store struct {
-	db  *sql.DB
-	now func() time.Time
+	db   *sql.DB
+	now  func() time.Time
+	path string
 }
 
 // Option configures a Store.
@@ -61,12 +64,36 @@ func Open(ctx context.Context, path string, opts ...Option) (*Store, error) {
 	}
 
 	s.db = db
+	s.path = path
 	return s, nil
 }
 
 // SchemaVersion returns the current applied schema version.
 func (s *Store) SchemaVersion(ctx context.Context) (int, error) {
 	return schemaVersion(ctx, s.db)
+}
+
+// Backup writes a consistent single-file snapshot of the database to dest using
+// SQLite's VACUUM INTO (ADR-0022). Unlike a raw file copy, this is safe under
+// WAL with concurrent reads and writes — it snapshots a consistent point. dest
+// must not already exist. It returns dest on success.
+func (s *Store) Backup(ctx context.Context, dest string) (string, error) {
+	if _, err := os.Stat(dest); err == nil {
+		return "", fmt.Errorf("backup destination already exists: %s", dest)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("checking backup destination %q: %w", dest, err)
+	}
+	// dest is a bound parameter, never interpolated into the SQL text.
+	if _, err := s.db.ExecContext(ctx, `VACUUM INTO ?`, dest); err != nil {
+		return "", fmt.Errorf("backing up database to %q: %w", dest, err)
+	}
+	return dest, nil
+}
+
+// DefaultBackupPath returns a timestamped backup path beside the live database,
+// so a caller without its own destination still gets a stable, discoverable one.
+func (s *Store) DefaultBackupPath() string {
+	return fmt.Sprintf("%s.backup-%s", s.path, s.now().UTC().Format("20060102T150405Z"))
 }
 
 // Close releases the database connection.

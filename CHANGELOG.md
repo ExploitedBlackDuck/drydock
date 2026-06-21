@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Consistent database backup (ADR-0024).** A `Back up…` action (and
+  `BackupDatabase` binding) writes a single consistent snapshot of the database
+  via SQLite `VACUUM INTO` — safe under WAL with concurrent writers, never a raw
+  file copy. The destination is never silently overwritten, and the snapshot is a
+  plaintext DB outside the sealed store (the operator is told to protect it). A
+  database written by a newer build now refuses to open with a dedicated
+  `ERR_STORE_SCHEMA_NEWER` error. Closes a v1-blocking gap from the project book.
+
 ### Changed
 
 - **Audit chain is now HMAC-keyed and truncation-aware (ADR-0025).** Entries are

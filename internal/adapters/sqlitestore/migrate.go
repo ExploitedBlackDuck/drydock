@@ -21,6 +21,12 @@ var migrationFiles embed.FS
 // (PROJECT-BOOK §8.4).
 var ErrMigration = errors.New("store migration failed")
 
+// ErrSchemaNewer indicates the on-disk database was written by a newer build and
+// is refused rather than risk corruption by an older app (ADR-0024). Maps to
+// ERR_STORE_SCHEMA_NEWER (PROJECT-BOOK §8.4). It wraps ErrMigration too, so
+// callers branching on either match.
+var ErrSchemaNewer = errors.New("ERR_STORE_SCHEMA_NEWER: database schema is newer than this build supports")
+
 type migration struct {
 	version int
 	name    string
@@ -88,7 +94,7 @@ func migrate(ctx context.Context, db *sql.DB, now func() time.Time) (int, error)
 
 	latest := len(migrations)
 	if current > latest {
-		return 0, fmt.Errorf("%w: database schema version %d is newer than this build supports (%d)", ErrMigration, current, latest)
+		return 0, fmt.Errorf("%w: schema version %d > supported %d: %w", ErrMigration, current, latest, ErrSchemaNewer)
 	}
 
 	for _, m := range migrations {

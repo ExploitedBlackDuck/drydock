@@ -138,7 +138,7 @@ func run() error {
 		return fmt.Errorf("loading embedded frontend: %w", err)
 	}
 
-	return app.Run(assets, log, registry, ops, jrnl, store, version)
+	return app.Run(assets, log, registry, ops, jrnl, store, store, version)
 }
 
 // buildLogger constructs the operational logger. In dev (text format) it writes
