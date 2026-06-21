@@ -1,8 +1,9 @@
 <script lang="ts">
-  // Audit-log view (PROJECT-BOOK §7.11.8): the append-only, hash-chained record
-  // of every consequential action, with a visible chain-verification indicator
-  // (green = intact, red = tampering detected) and export. The audit log spans
-  // all hosts, so this view is not host-scoped.
+  // Audit-log view (PROJECT-BOOK §7.11.8): the append-only, HMAC-keyed-chained
+  // record of every consequential action, with a chain-verification indicator
+  // distinguishing intact / in-place-tampered / truncated / key-unavailable
+  // (ADR-0025) and export. The audit log spans all hosts, so it is not
+  // host-scoped.
   import { onMount } from 'svelte';
   import StateMessage from '../components/states/StateMessage.svelte';
   import LoadingState from '../components/states/LoadingState.svelte';
@@ -42,22 +43,57 @@
   }
 
   $: entries = trail?.Entries ?? [];
+
+  // The four chain-verification states (ADR-0025), each with its own cue. The
+  // indicator states its guarantee honestly: tamper-evident, keyed, and
+  // truncation-aware — not a claim of tamper-proofness.
+  type ChainView = {
+    tone: 'ok' | 'warn' | 'danger';
+    role: string;
+    label: string;
+  };
+  function chainView(t: AuditStatus): ChainView {
+    switch (t.State) {
+      case 'intact':
+        return {
+          tone: 'ok',
+          role: 'status',
+          label: `Chain intact · ${t.VerifiedCount} entries verified`,
+        };
+      case 'truncated':
+        return {
+          tone: 'danger',
+          role: 'alert',
+          label: `Truncated · ${t.VerifiedCount} entries before the tail was removed`,
+        };
+      case 'key_unavailable':
+        return {
+          tone: 'warn',
+          role: 'status',
+          label: `Key unavailable · structure checked (${t.VerifiedCount}), authenticity not confirmed`,
+        };
+      default: // in_place_tampered
+        return {
+          tone: 'danger',
+          role: 'alert',
+          label: `Tampering detected · verified ${t.VerifiedCount} before a break`,
+        };
+    }
+  }
 </script>
 
 <div class="audit">
   <div class="toolbar">
     {#if trail}
-      {#if trail.Verified}
-        <span class="chip ok" role="status">
-          <span class="dot" aria-hidden="true"></span>
-          Chain intact · {trail.VerifiedCount} entries verified
-        </span>
-      {:else}
-        <span class="chip danger" role="alert">
-          <span class="dot" aria-hidden="true"></span>
-          Tampering detected · verified {trail.VerifiedCount} before a break
-        </span>
-      {/if}
+      {@const cv = chainView(trail)}
+      <span
+        class="chip {cv.tone}"
+        role={cv.role}
+        title="Tamper-evident, keyed, truncation-aware — not a claim of tamper-proofness"
+      >
+        <span class="dot" aria-hidden="true"></span>
+        {cv.label}
+      </span>
     {/if}
     <span class="spacer"></span>
     <button
@@ -161,6 +197,13 @@
   }
   .chip.danger .dot {
     background: var(--color-danger);
+  }
+  .chip.warn {
+    color: var(--color-warn);
+    border-color: color-mix(in srgb, var(--color-warn) 45%, transparent);
+  }
+  .chip.warn .dot {
+    background: var(--color-warn);
   }
 
   .export {

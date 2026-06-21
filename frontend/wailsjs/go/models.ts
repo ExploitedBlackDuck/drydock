@@ -59,8 +59,8 @@ export namespace domain {
 	    HostRef: string;
 	    Subject: string;
 	    Detail: Record<string, any>;
-	    PrevHash: string;
-	    Hash: string;
+	    PrevMAC: string;
+	    MAC: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new AuditEntry(source);
@@ -74,8 +74,8 @@ export namespace domain {
 	        this.HostRef = source["HostRef"];
 	        this.Subject = source["Subject"];
 	        this.Detail = source["Detail"];
-	        this.PrevHash = source["PrevHash"];
-	        this.Hash = source["Hash"];
+	        this.PrevMAC = source["PrevMAC"];
+	        this.MAC = source["MAC"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -498,6 +498,7 @@ export namespace journal {
 	
 	export class AuditStatus {
 	    Entries: domain.AuditEntry[];
+	    State: string;
 	    Verified: boolean;
 	    VerifiedCount: number;
 	    Error: string;
@@ -509,6 +510,7 @@ export namespace journal {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Entries = this.convertValues(source["Entries"], domain.AuditEntry);
+	        this.State = source["State"];
 	        this.Verified = source["Verified"];
 	        this.VerifiedCount = source["VerifiedCount"];
 	        this.Error = source["Error"];
