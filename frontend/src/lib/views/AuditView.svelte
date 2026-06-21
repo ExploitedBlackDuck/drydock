@@ -9,6 +9,7 @@
   import LoadingState from '../components/states/LoadingState.svelte';
   import {
     auditTrail,
+    backupDatabase,
     downloadJournalExport,
     type AuditStatus,
   } from '../api/journal';
@@ -18,6 +19,8 @@
   let trail: AuditStatus | null = null;
   let error = '';
   let exporting = false;
+  let backingUp = false;
+  let notice = '';
 
   async function load() {
     status = 'loading';
@@ -39,6 +42,19 @@
       await downloadJournalExport();
     } finally {
       exporting = false;
+    }
+  }
+
+  async function onBackup() {
+    backingUp = true;
+    notice = '';
+    try {
+      const path = await backupDatabase();
+      notice = `Backup written to ${path} — keep it somewhere safe.`;
+    } catch (err) {
+      notice = `Backup failed: ${err instanceof Error ? err.message : String(err)}`;
+    } finally {
+      backingUp = false;
     }
   }
 
@@ -98,10 +114,20 @@
     <span class="spacer"></span>
     <button
       class="export"
+      disabled={backingUp || status !== 'ready'}
+      title="Write a consistent snapshot of the database"
+      on:click={onBackup}>{backingUp ? 'Backing up…' : 'Back up…'}</button
+    >
+    <button
+      class="export"
       disabled={exporting || status !== 'ready'}
       on:click={onExport}>{exporting ? 'Exporting…' : 'Export…'}</button
     >
   </div>
+
+  {#if notice}
+    <p class="notice" role="status">{notice}</p>
+  {/if}
 
   {#if !trail?.Verified && trail?.Error}
     <p class="break" role="alert">{trail.Error}</p>
@@ -229,6 +255,16 @@
     color: var(--color-danger);
     background: var(--color-danger-soft);
     font-size: var(--text-sm);
+  }
+
+  .notice {
+    margin: 0;
+    padding: var(--space-2) var(--space-5);
+    color: var(--color-text-muted);
+    background: var(--color-surface-raised);
+    font-size: var(--text-sm);
+    font-family: var(--font-mono);
+    word-break: break-all;
   }
 
   .body {

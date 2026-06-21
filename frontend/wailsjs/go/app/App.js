@@ -10,6 +10,10 @@ export function AuditTrail() {
   return window['go']['app']['App']['AuditTrail']();
 }
 
+export function BackupDatabase() {
+  return window['go']['app']['App']['BackupDatabase']();
+}
+
 export function ComposeDown(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['ComposeDown'](arg1, arg2, arg3, arg4);
 }

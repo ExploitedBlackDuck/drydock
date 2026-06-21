@@ -1,6 +1,7 @@
 // Typed seam over the history/audit bindings (PROJECT-BOOK §7.11.8, §2.8).
 import {
   AuditTrail,
+  BackupDatabase,
   ExportJournal,
   OperationHistory,
 } from '../../../wailsjs/go/app/App';
@@ -23,6 +24,14 @@ export function operationHistory(
 /** The audit log plus its chain-verification result. */
 export function auditTrail(): Promise<AuditStatus> {
   return AuditTrail();
+}
+
+/**
+ * Writes a consistent snapshot of the database (operations, audit log, history)
+ * via the SQLite backup path and resolves to the file path it wrote.
+ */
+export function backupDatabase(): Promise<string> {
+  return BackupDatabase();
 }
 
 /**

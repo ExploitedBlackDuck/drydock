@@ -8,6 +8,8 @@ export function AddHost(arg1:app.AddHostInput):Promise<app.HostDTO>;
 
 export function AuditTrail():Promise<journal.AuditStatus>;
 
+export function BackupDatabase():Promise<string>;
+
 export function ComposeDown(arg1:string,arg2:string,arg3:boolean,arg4:boolean):Promise<void>;
 
 export function ComposeUp(arg1:string,arg2:string):Promise<void>;
