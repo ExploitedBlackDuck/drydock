@@ -47,14 +47,17 @@ type Container struct {
 
 // Image is an image summary (PROJECT-BOOK §7.1).
 type Image struct {
-	ID       string
-	HostRef  string
-	Repo     string
-	Tag      string
-	Size     int64
-	Dangling bool
-	InUse    bool
-	Created  time.Time
+	ID      string
+	HostRef string
+	Repo    string
+	Tag     string
+	// RepoDigest is the registry digest the image was pulled as (the "running"
+	// digest), used for tag-vs-digest drift detection (ADR-0019).
+	RepoDigest string
+	Size       int64
+	Dangling   bool
+	InUse      bool
+	Created    time.Time
 }
 
 // Volume is a volume summary (PROJECT-BOOK §7.1). Size is -1 when the engine did

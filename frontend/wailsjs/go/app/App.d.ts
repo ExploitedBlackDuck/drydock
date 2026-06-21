@@ -12,6 +12,8 @@ export function AuditTrail():Promise<journal.AuditStatus>;
 
 export function BackupDatabase():Promise<string>;
 
+export function CheckImageDrift(arg1:string,arg2:string):Promise<domain.ImageProvenance>;
+
 export function CloseExecInput(arg1:string):Promise<void>;
 
 export function ComposeDown(arg1:string,arg2:string,arg3:boolean,arg4:boolean):Promise<void>;
@@ -39,6 +41,8 @@ export function KillContainer(arg1:string,arg2:string,arg3:boolean):Promise<void
 export function ListContainers(arg1:string):Promise<Array<domain.Container>>;
 
 export function ListHosts():Promise<Array<app.HostDTO>>;
+
+export function ListImageProvenance(arg1:string):Promise<Array<domain.ImageProvenance>>;
 
 export function ListImages(arg1:string):Promise<Array<domain.Image>>;
 

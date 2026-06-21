@@ -62,13 +62,20 @@ func mapContainer(hostRef string, c container.Summary) domain.Container {
 
 func mapImage(hostRef string, img image.Summary) domain.Image {
 	repo, tag, dangling := splitRepoTag(img.RepoTags)
+	repoDigest := ""
+	if len(img.RepoDigests) > 0 {
+		if _, digest, found := strings.Cut(img.RepoDigests[0], "@"); found {
+			repoDigest = digest
+		}
+	}
 	return domain.Image{
-		ID:       img.ID,
-		HostRef:  hostRef,
-		Repo:     repo,
-		Tag:      tag,
-		Size:     img.Size,
-		Dangling: dangling,
+		ID:         img.ID,
+		HostRef:    hostRef,
+		Repo:       repo,
+		Tag:        tag,
+		RepoDigest: repoDigest,
+		Size:       img.Size,
+		Dangling:   dangling,
 		// Containers is -1 when the engine did not compute it; >0 means in use.
 		InUse:   img.Containers > 0,
 		Created: time.Unix(img.Created, 0).UTC(),

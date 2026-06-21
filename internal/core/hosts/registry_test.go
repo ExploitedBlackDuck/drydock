@@ -111,6 +111,10 @@ func (e *fakeEngine) PruneBuildCache(context.Context) (int64, error)   { return 
 func (e *fakeEngine) RemoveVolume(context.Context, string, bool) error { return nil }
 func (e *fakeEngine) ComposeUp(context.Context, string) error          { return nil }
 func (e *fakeEngine) ComposeDown(context.Context, string, bool) error  { return nil }
+func (e *fakeEngine) RegistryDigest(context.Context, string) (string, error) {
+	return "", nil
+}
+
 func (e *fakeEngine) StreamEvents(context.Context, func(domain.EngineEvent)) error {
 	return nil
 }

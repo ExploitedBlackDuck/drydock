@@ -111,6 +111,18 @@ func (c *Client) ListContainers(ctx context.Context) ([]domain.Container, error)
 	return out, nil
 }
 
+// RegistryDigest resolves the registry's current digest for an image reference
+// via the daemon's distribution-inspect endpoint (ADR-0019). The empty auth lets
+// the daemon use the host's own registry credentials — they are never copied
+// from the desktop. Operator-initiated only.
+func (c *Client) RegistryDigest(ctx context.Context, imageRef string) (string, error) {
+	inspect, err := c.cli.DistributionInspect(ctx, imageRef, "")
+	if err != nil {
+		return "", fmt.Errorf("resolving registry digest for %q on host %q: %w", imageRef, c.hostRef, err)
+	}
+	return inspect.Descriptor.Digest.String(), nil
+}
+
 // ListImages lists images held on the engine.
 func (c *Client) ListImages(ctx context.Context) ([]domain.Image, error) {
 	summaries, err := c.cli.ImageList(ctx, image.ListOptions{})

@@ -18,6 +18,10 @@ export function BackupDatabase() {
   return window['go']['app']['App']['BackupDatabase']();
 }
 
+export function CheckImageDrift(arg1, arg2) {
+  return window['go']['app']['App']['CheckImageDrift'](arg1, arg2);
+}
+
 export function CloseExecInput(arg1) {
   return window['go']['app']['App']['CloseExecInput'](arg1);
 }
@@ -72,6 +76,10 @@ export function ListContainers(arg1) {
 
 export function ListHosts() {
   return window['go']['app']['App']['ListHosts']();
+}
+
+export function ListImageProvenance(arg1) {
+  return window['go']['app']['App']['ListImageProvenance'](arg1);
 }
 
 export function ListImages(arg1) {

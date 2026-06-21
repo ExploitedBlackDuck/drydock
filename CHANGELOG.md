@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Image provenance & staleness (Phase 2, P13, ADR-0019).** The Images view
+  gains a provenance badge — **untagged**, **`:latest`** (ambiguous), or, after a
+  check, **drifted** / **current** — and a per-image **check** action.
+  `provenance.Assess` derives age and `:latest`/untagged status from local image
+  data with **no network call** (no background phone-home); the explicit
+  `CheckImageDrift` resolves the tag's current registry digest **through the
+  host's daemon** (distribution-inspect, the host's credentials, referenced not
+  copied) and flags **tag-vs-digest drift**. Vulnerability scanning stays out of
+  core. `domain.Image` gains the pulled `RepoDigest`.
 - **Host timeline (Phase 2, P12, ADR-0018).** A new per-host **Timeline** view
   interleaves mapped engine events (`die` with its exit code, `oom`,
   `health_status`) with references to Drydock's audit log — "what happened on

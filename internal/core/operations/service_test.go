@@ -78,6 +78,8 @@ func (e *fakeEngine) ComposeDown(_ context.Context, _ string, volumes bool) erro
 	return nil
 }
 
+func (e *fakeEngine) RegistryDigest(context.Context, string) (string, error) { return "", nil }
+
 func (e *fakeEngine) StreamEvents(context.Context, func(domain.EngineEvent)) error {
 	return nil
 }

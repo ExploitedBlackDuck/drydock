@@ -123,6 +123,12 @@ type Engine interface {
 	// (compose `down -v`), which the caller must have acknowledged (§7.5).
 	ComposeDown(ctx context.Context, project string, volumes bool) error
 
+	// RegistryDigest returns the registry's current digest for an image reference,
+	// resolved through the daemon's distribution-inspect endpoint so it reflects
+	// the host's registry reachability and credentials, not the desktop's
+	// (ADR-0019). It is operator-initiated — never called in the background.
+	RegistryDigest(ctx context.Context, imageRef string) (string, error)
+
 	// StreamEvents delivers engine events to sink until ctx is cancelled. It
 	// drives live UI updates and restart-loop detection (§7.6).
 	StreamEvents(ctx context.Context, sink func(domain.EngineEvent)) error

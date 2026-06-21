@@ -367,6 +367,7 @@ export namespace domain {
 	    HostRef: string;
 	    Repo: string;
 	    Tag: string;
+	    RepoDigest: string;
 	    Size: number;
 	    Dangling: boolean;
 	    InUse: boolean;
@@ -383,9 +384,59 @@ export namespace domain {
 	        this.HostRef = source["HostRef"];
 	        this.Repo = source["Repo"];
 	        this.Tag = source["Tag"];
+	        this.RepoDigest = source["RepoDigest"];
 	        this.Size = source["Size"];
 	        this.Dangling = source["Dangling"];
 	        this.InUse = source["InUse"];
+	        this.Created = this.convertValues(source["Created"], null);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ImageProvenance {
+	    HostRef: string;
+	    ImageRef: string;
+	    ImageID: string;
+	    RunningDigest: string;
+	    RegistryDigest: string;
+	    TagDrifted: boolean;
+	    Checked: boolean;
+	    Untagged: boolean;
+	    Latest: boolean;
+	    // Go type: time
+	    Created: any;
+	
+	    static createFrom(source: any = {}) {
+	        return new ImageProvenance(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.HostRef = source["HostRef"];
+	        this.ImageRef = source["ImageRef"];
+	        this.ImageID = source["ImageID"];
+	        this.RunningDigest = source["RunningDigest"];
+	        this.RegistryDigest = source["RegistryDigest"];
+	        this.TagDrifted = source["TagDrifted"];
+	        this.Checked = source["Checked"];
+	        this.Untagged = source["Untagged"];
+	        this.Latest = source["Latest"];
 	        this.Created = this.convertValues(source["Created"], null);
 	    }
 	
